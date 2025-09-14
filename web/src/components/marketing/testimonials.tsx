@@ -6,18 +6,18 @@ export function TestimonialsSection() {
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           <div className="bg-white p-6 rounded-lg shadow">
             <p className="mb-4">
-              "Amazing AI companion that really understands me!"
+              &ldquo;Amazing AI companion that really understands me!&rdquo;
             </p>
             <p className="font-semibold">- Alex</p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
             <p className="mb-4">
-              "Best AI relationship experience I've ever had."
+              &ldquo;Best AI relationship experience I&apos;ve ever had.&rdquo;
             </p>
             <p className="font-semibold">- Jordan</p>
           </div>
           <div className="bg-white p-6 rounded-lg shadow">
-            <p className="mb-4">"Feels so natural and engaging."</p>
+            <p className="mb-4">&ldquo;Feels so natural and engaging.&rdquo;</p>
             <p className="font-semibold">- Taylor</p>
           </div>
         </div>

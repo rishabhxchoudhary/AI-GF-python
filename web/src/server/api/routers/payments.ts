@@ -18,7 +18,7 @@ import {
 } from "~/types/credits";
 
 // Initialize Stripe
-const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
+const stripe = new Stripe(env.STRIPE_SECRET_KEY || "sk_test_dummy", {
   apiVersion: "2023-10-16",
 });
 
@@ -193,7 +193,6 @@ async function handleFailedPayment(
       amount: (session.amount_total || 0) / 100,
       currency: session.currency || "usd",
       packageType: packageId,
-      failureReason: "Payment failed during checkout",
     },
   });
 

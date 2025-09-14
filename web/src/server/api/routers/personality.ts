@@ -413,7 +413,7 @@ export const personalityRouter = createTRPCRouter({
       await db.user.update({
         where: { id: ctx.session.user.id },
         data: {
-          personalityTraits: personalityManager.toDict(),
+          personalityTraits: personalityManager.toDict() as any,
         },
       });
 
@@ -519,7 +519,7 @@ export const personalityRouter = createTRPCRouter({
         await db.user.update({
           where: { id: ctx.session.user.id },
           data: {
-            personalityTraits: personalityManager.toDict(),
+            personalityTraits: personalityManager.toDict() as any,
           },
         });
       }
@@ -544,7 +544,7 @@ export const personalityRouter = createTRPCRouter({
           mood_duration: {},
           trait_limits: DEFAULT_TRAIT_LIMITS,
           archetypes: DEFAULT_ARCHETYPES,
-        },
+        } as any,
       },
     });
 

@@ -202,7 +202,17 @@ export const creditsRouter = createTRPCRouter({
       return {
         balance,
         usage_stats: usageStats,
-        recent_usage: recentUsage as CreditUsage[],
+        recent_usage: recentUsage.map((usage) => ({
+          id: usage.id,
+          userId: usage.userId,
+          credits: usage.credits,
+          reason: usage.reason as CreditUsageReason,
+          description: usage.reason, // Use reason as description for now
+          timestamp: usage.createdAt.toISOString(),
+          metadata: usage.metadata
+            ? JSON.parse(JSON.stringify(usage.metadata))
+            : undefined,
+        })),
         low_balance_warning: lowBalanceWarning,
         estimated_days_remaining: estimatedDaysRemaining ?? undefined,
       };
@@ -343,7 +353,17 @@ export const creditsRouter = createTRPCRouter({
       ]);
 
       return {
-        usage: usageRecords as CreditUsage[],
+        usage: usageRecords.map((usage) => ({
+          id: usage.id,
+          userId: usage.userId,
+          credits: usage.credits,
+          reason: usage.reason as CreditUsageReason,
+          description: usage.reason, // Use reason as description for now
+          timestamp: usage.createdAt.toISOString(),
+          metadata: usage.metadata
+            ? JSON.parse(JSON.stringify(usage.metadata))
+            : undefined,
+        })),
         total_count: totalCount,
         has_more: totalCount > input.offset + input.limit,
       };
@@ -388,7 +408,19 @@ export const creditsRouter = createTRPCRouter({
         ]);
 
         return {
-          purchases: purchases as Purchase[],
+          purchases: purchases.map((purchase) => ({
+            id: purchase.id,
+            userId: purchase.userId,
+            packageId: purchase.packageType, // Use packageType as packageId
+            stripeSessionId: purchase.stripeSessionId,
+            status: purchase.status as PurchaseStatus,
+            credits: purchase.credits,
+            amount: purchase.amount,
+            currency: purchase.currency,
+            packageName: purchase.packageType, // Use packageType as packageName for now
+            createdAt: purchase.createdAt.toISOString(),
+            completedAt: purchase.completedAt?.toISOString(),
+          })),
           total_count: totalCount,
           has_more: totalCount > input.offset + input.limit,
         };
@@ -488,10 +520,11 @@ export const creditsRouter = createTRPCRouter({
 
       // Calculate conversion rate (users who purchased vs total users)
       const totalUsers = await db.user.count();
-      const purchasingUsers = await db.purchase.count({
+      const purchasingUsersGroup = await db.purchase.groupBy({
+        by: ["userId"],
         where: { status: "completed" },
-        distinct: ["userId"],
       });
+      const purchasingUsers = purchasingUsersGroup.length;
 
       return {
         total_users_with_credits: totalUsersWithCredits,
