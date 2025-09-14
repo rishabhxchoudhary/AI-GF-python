@@ -1,10 +1,11 @@
 import "~/app/globals.css";
 
 import { Inter } from "next/font/google";
+import { type Metadata } from "next";
 import { cookies } from "next/headers";
 
 import { TRPCReactProvider } from "~/trpc/react";
-import { getServerAuthSession } from "~/server/auth-simple";
+import { getServerAuthSession } from "~/server/auth";
 import { Toaster } from "~/components/ui/toaster";
 import { ThemeProvider } from "~/components/theme-provider";
 
@@ -13,7 +14,7 @@ const inter = Inter({
   variable: "--font-sans",
 });
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "AI Girlfriend - Your Perfect Digital Companion",
   description:
     "Experience the most advanced AI girlfriend with dynamic personality, relationship progression, and intimate conversations. Start your journey today.",

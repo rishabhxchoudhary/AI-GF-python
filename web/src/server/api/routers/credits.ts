@@ -67,7 +67,7 @@ const PurchaseHistoryQuerySchema = z.object({
 
 async function calculateCreditUsageStats(
   userId: string,
-  days: number = 30
+  days: number = 30,
 ): Promise<CreditUsageStats> {
   const cutoffDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
@@ -81,7 +81,7 @@ async function calculateCreditUsageStats(
 
   const totalUsed = usageRecords.reduce(
     (sum: number, record: any) => sum + record.credits,
-    0
+    0,
   );
   const dailyUsage = Math.round((totalUsed / days) * 100) / 100;
 
@@ -106,19 +106,19 @@ async function calculateCreditUsageStats(
   const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
   const dailyUsageRecords = usageRecords.filter(
-    (record: any) => new Date(record.createdAt) > oneDayAgo
+    (record: any) => new Date(record.createdAt) > oneDayAgo,
   );
   const weeklyUsageRecords = usageRecords.filter(
-    (record: any) => new Date(record.createdAt) > oneWeekAgo
+    (record: any) => new Date(record.createdAt) > oneWeekAgo,
   );
 
   const dailyTotal = dailyUsageRecords.reduce(
     (sum: number, record: any) => sum + record.credits,
-    0
+    0,
   );
   const weeklyTotal = weeklyUsageRecords.reduce(
     (sum: number, record: any) => sum + record.credits,
-    0
+    0,
   );
   const monthlyTotal = totalUsed;
 
@@ -154,7 +154,7 @@ async function getCreditBalance(userId: string): Promise<CreditBalance> {
 
   const lifetimePurchased = purchases.reduce(
     (sum: number, purchase: any) => sum + purchase.credits,
-    0
+    0,
   );
   const lifetimeSpent = lifetimePurchased + 5 - user.credits; // Include free trial credits
 
@@ -163,7 +163,7 @@ async function getCreditBalance(userId: string): Promise<CreditBalance> {
     purchases.length > 0
       ? purchases.sort(
           (a: any, b: any) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
         )[0]
       : null;
 
@@ -191,12 +191,12 @@ export const creditsRouter = createTRPCRouter({
 
       const lowBalanceWarning = shouldShowLowBalanceWarning(
         balance.current,
-        usageStats.average_daily_usage
+        usageStats.average_daily_usage,
       );
 
       const estimatedDaysRemaining = calculateEstimatedDaysRemaining(
         balance.current,
-        usageStats.average_daily_usage
+        usageStats.average_daily_usage,
       );
 
       return {
@@ -204,9 +204,9 @@ export const creditsRouter = createTRPCRouter({
         usage_stats: usageStats,
         recent_usage: recentUsage as CreditUsage[],
         low_balance_warning: lowBalanceWarning,
-        estimated_days_remaining: estimatedDaysRemaining,
+        estimated_days_remaining: estimatedDaysRemaining ?? undefined,
       };
-    }
+    },
   ),
 
   // Deduct credits (used by other services)
@@ -392,7 +392,7 @@ export const creditsRouter = createTRPCRouter({
           total_count: totalCount,
           has_more: totalCount > input.offset + input.limit,
         };
-      }
+      },
     ),
 
   // Get credit packages available for purchase
@@ -406,7 +406,7 @@ export const creditsRouter = createTRPCRouter({
       z.object({
         reason: z.string().refine(isValidCreditUsageReason),
         amount: z.number().optional(),
-      })
+      }),
     )
     .query(async ({ ctx, input }) => {
       const user = await db.user.findUnique({
@@ -435,7 +435,7 @@ export const creditsRouter = createTRPCRouter({
     .input(z.object({ days: z.number().default(30) }))
     .query(async ({ input }) => {
       const cutoffDate = new Date(
-        Date.now() - input.days * 24 * 60 * 60 * 1000
+        Date.now() - input.days * 24 * 60 * 60 * 1000,
       );
 
       // Get user statistics
@@ -483,7 +483,7 @@ export const creditsRouter = createTRPCRouter({
       const mostPopularPackage = Object.entries(packageCounts).reduce(
         (max, [pkg, count]) =>
           count > max.count ? { package: pkg, count } : max,
-        { package: "starter", count: 0 }
+        { package: "starter", count: 0 },
       ).package;
 
       // Calculate conversion rate (users who purchased vs total users)
@@ -509,7 +509,7 @@ export const creditsRouter = createTRPCRouter({
         revenue_today: todaysPurchases._sum.amount || 0,
         revenue_this_month: recentPurchases.reduce(
           (sum: number, p: any) => sum + p.amount,
-          0
+          0,
         ),
       };
     }),
@@ -522,7 +522,7 @@ export const creditsRouter = createTRPCRouter({
         amount: z.number(),
         reason: z.string(),
         note: z.string().optional(),
-      })
+      }),
     )
     .mutation(async ({ input }) => {
       const adjustment = input.amount > 0 ? "increment" : "decrement";

@@ -46,7 +46,7 @@ async function createStripeCheckoutSession(
   creditPackage: CreditPackage,
   successUrl?: string,
   cancelUrl?: string,
-  couponCode?: string
+  couponCode?: string,
 ): Promise<Stripe.Checkout.Session> {
   const baseUrl = env.APP_URL || env.NEXTAUTH_URL || "http://localhost:3000";
 
@@ -91,7 +91,7 @@ async function createStripeCheckoutSession(
     try {
       const coupons = await stripe.coupons.list({ limit: 100 });
       const validCoupon = coupons.data.find(
-        (coupon) => coupon.id === couponCode && coupon.valid
+        (coupon) => coupon.id === couponCode && coupon.valid,
       );
 
       if (validCoupon) {
@@ -107,7 +107,7 @@ async function createStripeCheckoutSession(
 }
 
 async function handleSuccessfulPayment(
-  session: Stripe.Checkout.Session
+  session: Stripe.Checkout.Session,
 ): Promise<void> {
   const userId = session.client_reference_id;
   const packageId = session.metadata?.packageId;
@@ -119,7 +119,7 @@ async function handleSuccessfulPayment(
   }
 
   // Use transaction to ensure atomicity
-  await db.$transaction(async (tx) => {
+  await db.$transaction(async (tx: any) => {
     // Create purchase record
     const purchase = await tx.purchase.create({
       data: {
@@ -175,7 +175,7 @@ async function handleSuccessfulPayment(
 }
 
 async function handleFailedPayment(
-  session: Stripe.Checkout.Session
+  session: Stripe.Checkout.Session,
 ): Promise<void> {
   const userId = session.client_reference_id;
   const packageId = session.metadata?.packageId;
@@ -246,7 +246,7 @@ export const paymentsRouter = createTRPCRouter({
           // Try to retrieve existing Stripe session
           try {
             const existingSession = await stripe.checkout.sessions.retrieve(
-              existingPurchase.stripeSessionId
+              existingPurchase.stripeSessionId,
             );
 
             if (existingSession.status === "open") {
@@ -259,7 +259,7 @@ export const paymentsRouter = createTRPCRouter({
                   credits: creditPackage.credits,
                   amount: creditPackage.price,
                   expiresAt: new Date(
-                    existingSession.expires_at * 1000
+                    existingSession.expires_at * 1000,
                   ).toISOString(),
                 },
               };
@@ -277,7 +277,7 @@ export const paymentsRouter = createTRPCRouter({
           creditPackage,
           input.successUrl,
           input.cancelUrl,
-          input.couponCode
+          input.couponCode,
         );
 
         if (!session.url) {
@@ -346,7 +346,7 @@ export const paymentsRouter = createTRPCRouter({
       try {
         // Retrieve session from Stripe
         const session = await stripe.checkout.sessions.retrieve(
-          input.sessionId
+          input.sessionId,
         );
 
         // Find purchase record
@@ -447,7 +447,7 @@ export const paymentsRouter = createTRPCRouter({
           event = stripe.webhooks.constructEvent(
             input.body,
             sig,
-            webhookSecret
+            webhookSecret,
           );
         } catch (err) {
           console.error("Webhook signature verification failed:", err);
@@ -489,7 +489,7 @@ export const paymentsRouter = createTRPCRouter({
             if (paymentIntent.metadata?.session_id) {
               try {
                 const session = await stripe.checkout.sessions.retrieve(
-                  paymentIntent.metadata.session_id
+                  paymentIntent.metadata.session_id,
                 );
                 await handleFailedPayment(session);
               } catch (error) {
@@ -595,7 +595,7 @@ export const paymentsRouter = createTRPCRouter({
       }
 
       const cutoffDate = new Date(
-        Date.now() - input.days * 24 * 60 * 60 * 1000
+        Date.now() - input.days * 24 * 60 * 60 * 1000,
       );
 
       const [
@@ -660,10 +660,10 @@ export const paymentsRouter = createTRPCRouter({
       ]);
 
       const checkoutInitiated =
-        conversionStats.find((s) => s.action === "checkout_initiated")
+        conversionStats.find((s: any) => s.action === "checkout_initiated")
           ?._count || 0;
       const purchaseCompleted =
-        conversionStats.find((s) => s.action === "purchase_completed")
+        conversionStats.find((s: any) => s.action === "purchase_completed")
           ?._count || 0;
       const conversionRate =
         checkoutInitiated > 0
@@ -678,31 +678,33 @@ export const paymentsRouter = createTRPCRouter({
         average_order_value:
           totalRevenue._count > 0
             ? Math.round(
-                ((totalRevenue._sum.amount || 0) / totalRevenue._count) * 100
+                ((totalRevenue._sum.amount || 0) / totalRevenue._count) * 100,
               ) / 100
             : 0,
         top_packages: topPackages
-          .sort((a, b) => (b._sum.amount || 0) - (a._sum.amount || 0))
+          .sort((a: any, b: any) => (b._sum.amount || 0) - (a._sum.amount || 0))
           .slice(0, 5),
-        daily_revenue: this.calculateDailyRevenue(recentPurchases, input.days),
+        daily_revenue: calculateDailyRevenue(recentPurchases, input.days),
       };
     }),
 });
 
 // Helper function for daily revenue calculation
 function calculateDailyRevenue(purchases: any[], days: number): number[] {
-  const dailyRevenue = new Array(days).fill(0);
   const now = new Date();
+  const dailyRevenue = new Array(days).fill(0);
 
   purchases.forEach((purchase) => {
     if (purchase.completedAt) {
       const purchaseDate = new Date(purchase.completedAt);
       const daysAgo = Math.floor(
-        (now.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24)
+        (now.getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24),
       );
 
       if (daysAgo >= 0 && daysAgo < days) {
-        dailyRevenue[days - 1 - daysAgo] += purchase.amount;
+        const dayIndex = days - 1 - daysAgo;
+        dailyRevenue[dayIndex] =
+          (dailyRevenue[dayIndex] || 0) + purchase.amount;
       }
     }
   });

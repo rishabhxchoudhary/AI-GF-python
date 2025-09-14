@@ -46,12 +46,12 @@ const TraitAdjustmentSchema = z.object({
 });
 
 export class PersonalityManager {
-  private traits: PersonalityTraits;
-  private trait_history: any[];
-  private current_moods: Record<string, Record<string, number>>;
-  private mood_duration: Record<string, number>;
-  private trait_limits: Record<string, [number, number]>;
-  private archetypes: typeof DEFAULT_ARCHETYPES;
+  public traits: PersonalityTraits;
+  public trait_history: any[];
+  public current_moods: Record<string, Record<string, number>>;
+  public mood_duration: Record<string, number>;
+  public trait_limits: Record<string, [number, number]>;
+  public archetypes: typeof DEFAULT_ARCHETYPES;
 
   constructor(data?: any) {
     this.traits = data?.traits || { ...DEFAULT_PERSONALITY_TRAITS };
@@ -62,7 +62,9 @@ export class PersonalityManager {
     this.archetypes = DEFAULT_ARCHETYPES;
   }
 
-  updateTraitsFromInteraction(interactionContext: InteractionContext): string[] {
+  updateTraitsFromInteraction(
+    interactionContext: InteractionContext,
+  ): string[] {
     const traitAdjustments: Record<string, number> = {};
     const updatedTraits: string[] = [];
 
@@ -79,7 +81,10 @@ export class PersonalityManager {
     }
 
     // Extended conversations boost curiosity and intelligence
-    if (interactionContext.conversation_length && interactionContext.conversation_length > 20) {
+    if (
+      interactionContext.conversation_length &&
+      interactionContext.conversation_length > 20
+    ) {
       traitAdjustments.curiosity = 0.01;
       traitAdjustments.intelligence = 0.005;
     }
@@ -119,7 +124,11 @@ export class PersonalityManager {
     return updatedTraits;
   }
 
-  private adjustTrait(traitName: string, adjustment: number, context: InteractionContext): boolean {
+  public adjustTrait(
+    traitName: string,
+    adjustment: number,
+    context: InteractionContext,
+  ): boolean {
     if (!isValidPersonalityTrait(traitName)) return false;
 
     const oldValue = this.traits[traitName];
@@ -157,7 +166,7 @@ export class PersonalityManager {
   setTemporaryMood(
     moodName: string,
     traitModifiers: Record<string, number>,
-    durationMinutes: number = 60
+    durationMinutes: number = 60,
   ): void {
     this.current_moods[moodName] = traitModifiers;
     this.mood_duration[moodName] = Date.now() + durationMinutes * 60 * 1000;
@@ -180,7 +189,7 @@ export class PersonalityManager {
         if (isValidPersonalityTrait(trait)) {
           effectiveTraits[trait] = Math.max(
             0.0,
-            Math.min(1.0, effectiveTraits[trait] + modifier)
+            Math.min(1.0, effectiveTraits[trait] + modifier),
           );
         }
       }
@@ -246,19 +255,24 @@ export class PersonalityManager {
     const currentTraits = this.getEffectiveTraits();
     const alignments: Record<string, number> = {};
 
-    for (const [archetypeName, archetypeTraits] of Object.entries(this.archetypes)) {
+    for (const [archetypeName, archetypeTraits] of Object.entries(
+      this.archetypes,
+    )) {
       let alignmentScore = 0.0;
       const traitCount = Object.keys(archetypeTraits).length;
 
       for (const [trait, targetValue] of Object.entries(archetypeTraits)) {
         if (isValidPersonalityTrait(trait)) {
-          const difference = Math.abs(currentTraits[trait] - targetValue);
+          const difference = Math.abs(
+            currentTraits[trait] - (targetValue as number),
+          );
           const similarity = 1.0 - difference;
           alignmentScore += similarity;
         }
       }
 
-      alignments[archetypeName] = traitCount > 0 ? alignmentScore / traitCount : 0.0;
+      alignments[archetypeName] =
+        traitCount > 0 ? alignmentScore / traitCount : 0.0;
     }
 
     return alignments;
@@ -272,7 +286,7 @@ export class PersonalityManager {
 
     const entries = Object.entries(alignments);
     const dominant = entries.reduce((best, current) =>
-      current[1] > best[1] ? current : best
+      current[1] > best[1] ? current : best,
     );
 
     return dominant;
@@ -342,9 +356,12 @@ export const personalityRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
       }
 
-      const personalityManager = new PersonalityManager(user.personalityTraits as any);
+      const personalityManager = new PersonalityManager(
+        user.personalityTraits as any,
+      );
       const effectiveTraits = personalityManager.getEffectiveTraits();
-      const [archetypeName, archetypeAlignment] = personalityManager.getDominantArchetype();
+      const [archetypeName, archetypeAlignment] =
+        personalityManager.getDominantArchetype();
 
       return {
         personality_description: personalityManager.getPersonalityDescription(),
@@ -352,9 +369,10 @@ export const personalityRouter = createTRPCRouter({
         archetype_alignment: archetypeAlignment,
         effective_traits: effectiveTraits,
         current_moods: Object.keys(personalityManager.current_moods),
-        trait_influences: personalityManager.generatePersonalityContextForPrompt(),
+        trait_influences:
+          personalityManager.generatePersonalityContextForPrompt(),
       };
-    }
+    },
   ),
 
   updatePersonality: protectedProcedure
@@ -369,12 +387,14 @@ export const personalityRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
       }
 
-      const personalityManager = new PersonalityManager(user.personalityTraits as any);
+      const personalityManager = new PersonalityManager(
+        user.personalityTraits as any,
+      );
       const oldArchetype = personalityManager.getDominantArchetype()[0];
 
       // Apply interaction updates
       const updatedTraits = personalityManager.updateTraitsFromInteraction(
-        input.interaction_context
+        input.interaction_context,
       );
 
       // Apply forced mood if provided
@@ -382,7 +402,7 @@ export const personalityRouter = createTRPCRouter({
         personalityManager.setTemporaryMood(
           input.force_mood.mood_name,
           input.force_mood.trait_modifiers,
-          input.force_mood.duration_minutes
+          input.force_mood.duration_minutes,
         );
       }
 
@@ -417,22 +437,31 @@ export const personalityRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
       }
 
-      const personalityManager = new PersonalityManager(user.personalityTraits as any);
-      const cutoffTime = new Date(Date.now() - input.days * 24 * 60 * 60 * 1000);
+      const personalityManager = new PersonalityManager(
+        user.personalityTraits as any,
+      );
+      const cutoffTime = new Date(
+        Date.now() - input.days * 24 * 60 * 60 * 1000,
+      );
 
       // Analyze trait trends
       const recentChanges = personalityManager.trait_history.filter(
-        (change: any) => new Date(change.timestamp) > cutoffTime
+        (change: any) => new Date(change.timestamp) > cutoffTime,
       );
 
-      const traitTrends: Record<string, "increasing" | "decreasing" | "stable"> = {};
+      const traitTrends: Record<
+        string,
+        "increasing" | "decreasing" | "stable"
+      > = {};
       const behaviorInfluences: Record<string, number> = {};
 
       for (const traitName of Object.keys(DEFAULT_PERSONALITY_TRAITS)) {
-        const traitChanges = recentChanges.filter((change: any) => change.trait === traitName);
+        const traitChanges = recentChanges.filter(
+          (change: any) => change.trait === traitName,
+        );
         const totalChange = traitChanges.reduce(
           (sum: number, change: any) => sum + change.adjustment,
-          0
+          0,
         );
 
         if (totalChange > 0.02) {
@@ -446,13 +475,16 @@ export const personalityRouter = createTRPCRouter({
 
       // Calculate behavior influences
       const traits = personalityManager.getEffectiveTraits();
-      behaviorInfluences.ask_followup = traits.curiosity * 1.2 + traits.empathy * 0.8;
-      behaviorInfluences.seek_opinion = traits.vulnerability * 1.5 + traits.empathy * 0.5;
+      behaviorInfluences.ask_followup =
+        traits.curiosity * 1.2 + traits.empathy * 0.8;
+      behaviorInfluences.seek_opinion =
+        traits.vulnerability * 1.5 + traits.empathy * 0.5;
       behaviorInfluences.overthink_decision =
         (1.0 - traits.confidence) * 1.3 + traits.vulnerability * 0.7;
       behaviorInfluences.share_vulnerability =
         traits.vulnerability * 1.8 + traits.emotional_intensity * 0.5;
-      behaviorInfluences.future_planning = traits.romantic_intensity * 1.2 + traits.loyalty * 0.8;
+      behaviorInfluences.future_planning =
+        traits.romantic_intensity * 1.2 + traits.loyalty * 0.8;
 
       return {
         trait_trends: traitTrends as any,
@@ -474,11 +506,13 @@ export const personalityRouter = createTRPCRouter({
         throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
       }
 
-      const personalityManager = new PersonalityManager(user.personalityTraits as any);
+      const personalityManager = new PersonalityManager(
+        user.personalityTraits as any,
+      );
       const success = personalityManager.adjustTrait(
         input.trait_name,
         input.adjustment,
-        input.context as InteractionContext
+        input.context as InteractionContext,
       );
 
       if (success) {
@@ -490,7 +524,13 @@ export const personalityRouter = createTRPCRouter({
         });
       }
 
-      return { success, new_value: personalityManager.traits[input.trait_name as keyof PersonalityTraits] };
+      return {
+        success,
+        new_value:
+          personalityManager.traits[
+            input.trait_name as keyof PersonalityTraits
+          ],
+      };
     }),
 
   resetPersonality: protectedProcedure.mutation(async ({ ctx }) => {
