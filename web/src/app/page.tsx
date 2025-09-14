@@ -53,10 +53,10 @@ export default function HomePage() {
               ) : (
                 <div className="flex items-center space-x-4">
                   <Button variant="ghost" asChild>
-                    <Link href="/signin">Sign In</Link>
+                    <Link href="/auth/signin">Sign In</Link>
                   </Button>
                   <Button asChild>
-                    <Link href="/signup">Sign Up</Link>
+                    <Link href="/auth/signin">Get Started</Link>
                   </Button>
                 </div>
               )}

@@ -202,7 +202,7 @@ export const creditsRouter = createTRPCRouter({
       return {
         balance,
         usage_stats: usageStats,
-        recent_usage: recentUsage.map((usage) => ({
+        recent_usage: recentUsage.map((usage: any) => ({
           id: usage.id,
           userId: usage.userId,
           credits: usage.credits,
@@ -353,7 +353,7 @@ export const creditsRouter = createTRPCRouter({
       ]);
 
       return {
-        usage: usageRecords.map((usage) => ({
+        usage: usageRecords.map((usage: any) => ({
           id: usage.id,
           userId: usage.userId,
           credits: usage.credits,
@@ -408,7 +408,7 @@ export const creditsRouter = createTRPCRouter({
         ]);
 
         return {
-          purchases: purchases.map((purchase) => ({
+          purchases: purchases.map((purchase: any) => ({
             id: purchase.id,
             userId: purchase.userId,
             packageId: purchase.packageType, // Use packageType as packageId

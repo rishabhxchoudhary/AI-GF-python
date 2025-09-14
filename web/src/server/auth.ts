@@ -99,6 +99,7 @@ export const authConfig: NextAuthConfig = {
     signIn: "/auth/signin",
     error: "/auth/error",
   },
+  trustHost: true,
   events: {
     createUser: async ({ user }) => {
       // Give new users free trial credits
@@ -169,4 +170,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
  *
  * @see https://next-auth.js.org/configuration/nextjs
  */
-export const getServerAuthSession = () => auth();
+export const getServerAuthSession = async () => {
+  try {
+    return await auth();
+  } catch (error) {
+    console.warn("Auth session error:", error);
+    return null;
+  }
+};

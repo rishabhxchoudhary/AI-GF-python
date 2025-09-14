@@ -5,9 +5,10 @@ import { type Metadata } from "next";
 import { cookies } from "next/headers";
 
 import { TRPCReactProvider } from "~/trpc/react";
-import { getServerAuthSession } from "~/server/auth";
+
 import { Toaster } from "~/components/ui/toaster";
 import { ThemeProvider } from "~/components/theme-provider";
+import { AuthSessionProvider } from "~/components/session-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -59,29 +60,29 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getServerAuthSession();
-
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`font-sans ${inter.variable} antialiased`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <TRPCReactProvider cookies={cookies().toString()}>
-            <div className="relative flex min-h-screen flex-col">
-              <div className="flex-1">{children}</div>
-            </div>
-            <Toaster />
-          </TRPCReactProvider>
-        </ThemeProvider>
+        <AuthSessionProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <TRPCReactProvider cookies={cookies().toString()}>
+              <div className="relative flex min-h-screen flex-col">
+                <div className="flex-1">{children}</div>
+              </div>
+              <Toaster />
+            </TRPCReactProvider>
+          </ThemeProvider>
+        </AuthSessionProvider>
 
         {/* Analytics Scripts */}
         {process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID && (

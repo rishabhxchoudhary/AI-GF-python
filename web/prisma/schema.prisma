@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -16,12 +16,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -49,13 +49,13 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   // AI Girlfriend specific fields
-  personalityTraits Json?
+  personalityTraits String? // JSON stored as string
   relationshipStage String @default("new")
-  relationshipData  Json?
-  memories          Json?
-  userPreferences   Json?
-  insideJokes       Json?
-  emotionalMoments  Json?
+  relationshipData  String? // JSON stored as string
+  memories          String? // JSON stored as string
+  userPreferences   String? // JSON stored as string
+  insideJokes       String? // JSON stored as string
+  emotionalMoments  String? // JSON stored as string
 
   // Tracking
   totalInteractions Int @default(0)
@@ -79,8 +79,8 @@ model VerificationToken {
 model Conversation {
   id        String   @id @default(cuid())
   userId    String
-  messages  Json     // Array of message objects
-  metadata  Json?    // Additional conversation metadata
+  messages  String   // Array of message objects as JSON string
+  metadata  String?  // Additional conversation metadata as JSON string
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -111,7 +111,7 @@ model CreditUsage {
   userId      String
   credits     Int      // Amount deducted (positive number)
   reason      String   // chat_message, personality_update, etc.
-  metadata    Json?    // Additional context
+  metadata    String?  // Additional context as JSON string
   createdAt   DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -124,7 +124,7 @@ model UserActivity {
   id        String   @id @default(cuid())
   userId    String
   action    String   // login, chat, purchase, etc.
-  metadata  Json?
+  metadata  String? // JSON stored as string
   timestamp DateTime @default(now())
 
   @@index([userId, timestamp])
