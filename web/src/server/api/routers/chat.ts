@@ -375,14 +375,14 @@ export const chatRouter = createTRPCRouter({
           ? await tx.conversation.update({
               where: { id: conversationHistory[0].id },
               data: {
-                messages: newMessages,
+                messages: JSON.stringify(newMessages),
                 updatedAt: new Date(),
               },
             })
           : await tx.conversation.create({
               data: {
                 userId,
-                messages: newMessages,
+                messages: JSON.stringify(newMessages),
               },
             });
 
@@ -476,7 +476,7 @@ export const chatRouter = createTRPCRouter({
     });
 
     return conversations.map((conv: any) => {
-      const messages = conv.messages as any[];
+      const messages = JSON.parse(conv.messages as string) as any[];
       const lastMessage = messages[messages.length - 1];
 
       return {
@@ -528,7 +528,7 @@ export const chatRouter = createTRPCRouter({
           .then((convs: any) =>
             convs.reduce(
               (total: number, conv: any) =>
-                total + (conv.messages as any[]).length,
+                total + (JSON.parse(conv.messages as string) as any[]).length,
               0,
             ),
           ),
@@ -542,7 +542,8 @@ export const chatRouter = createTRPCRouter({
       ]);
 
     const recentMessageCount = recentActivity.reduce(
-      (total: number, conv: any) => total + (conv.messages as any[]).length,
+      (total: number, conv: any) =>
+        total + (JSON.parse(conv.messages as string) as any[]).length,
       0,
     );
 

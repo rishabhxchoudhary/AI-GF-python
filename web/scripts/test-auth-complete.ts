@@ -16,12 +16,17 @@ async function testCompleteAuthFlow() {
 
       if (providers.google) {
         console.log("✅ Server is running and NextAuth is responding");
-        console.log(`   Available providers: ${Object.keys(providers).join(", ")}`);
+        console.log(
+          `   Available providers: ${Object.keys(providers).join(", ")}`,
+        );
       } else {
         console.log("❌ NextAuth providers not properly configured");
       }
     } catch (error) {
-      console.log("❌ Server not accessible:", error.message);
+      console.log(
+        "❌ Server not accessible:",
+        error instanceof Error ? error.message : String(error),
+      );
       console.log("   Make sure 'npm run dev' is running");
       return;
     }
@@ -38,7 +43,10 @@ async function testCompleteAuthFlow() {
         console.log("⚠️  Unexpected session response:", session);
       }
     } catch (error) {
-      console.log("❌ Session endpoint error:", error.message);
+      console.log(
+        "❌ Session endpoint error:",
+        error instanceof Error ? error.message : String(error),
+      );
     }
 
     // Test 3: Test database authentication tables
@@ -56,21 +64,27 @@ async function testCompleteAuthFlow() {
     console.log("\n4. Testing protected route middleware...");
     try {
       const chatResponse = await fetch(`${BASE_URL}/chat`, {
-        redirect: 'manual'
+        redirect: "manual",
       });
 
       if (chatResponse.status === 302) {
-        const location = chatResponse.headers.get('location');
-        if (location && location.includes('/auth/signin')) {
+        const location = chatResponse.headers.get("location");
+        if (location && location.includes("/auth/signin")) {
           console.log("✅ Protected route redirects to signin (expected)");
         } else {
           console.log("⚠️  Protected route redirected to:", location);
         }
       } else {
-        console.log("⚠️  Protected route did not redirect, status:", chatResponse.status);
+        console.log(
+          "⚠️  Protected route did not redirect, status:",
+          chatResponse.status,
+        );
       }
     } catch (error) {
-      console.log("❌ Protected route test failed:", error.message);
+      console.log(
+        "❌ Protected route test failed:",
+        error instanceof Error ? error.message : String(error),
+      );
     }
 
     // Test 5: Test auth pages are accessible
@@ -80,29 +94,41 @@ async function testCompleteAuthFlow() {
       if (signinResponse.status === 200) {
         console.log("✅ Signin page is accessible");
       } else {
-        console.log("❌ Signin page not accessible, status:", signinResponse.status);
+        console.log(
+          "❌ Signin page not accessible, status:",
+          signinResponse.status,
+        );
       }
     } catch (error) {
-      console.log("❌ Signin page test failed:", error.message);
+      console.log(
+        "❌ Signin page test failed:",
+        error instanceof Error ? error.message : String(error),
+      );
     }
 
     // Test 6: Test tRPC authentication context
     console.log("\n6. Testing tRPC authentication context...");
     try {
       // This should fail with UNAUTHORIZED since we're not authenticated
-      const trpcResponse = await fetch(`${BASE_URL}/api/trpc/credits.getCreditStatus`, {
-        method: 'GET',
-      });
+      const trpcResponse = await fetch(
+        `${BASE_URL}/api/trpc/credits.getCreditStatus`,
+        {
+          method: "GET",
+        },
+      );
 
       const trpcResult = await trpcResponse.text();
 
-      if (trpcResult.includes('UNAUTHORIZED') || trpcResponse.status === 401) {
+      if (trpcResult.includes("UNAUTHORIZED") || trpcResponse.status === 401) {
         console.log("✅ tRPC properly rejects unauthenticated requests");
       } else {
         console.log("⚠️  tRPC response:", trpcResult);
       }
     } catch (error) {
-      console.log("❌ tRPC test failed:", error.message);
+      console.log(
+        "❌ tRPC test failed:",
+        error instanceof Error ? error.message : String(error),
+      );
     }
 
     // Test 7: Test CSRF protection
@@ -118,29 +144,32 @@ async function testCompleteAuthFlow() {
         console.log("❌ CSRF token missing");
       }
     } catch (error) {
-      console.log("❌ CSRF test failed:", error.message);
+      console.log(
+        "❌ CSRF test failed:",
+        error instanceof Error ? error.message : String(error),
+      );
     }
 
     // Test 8: Test environment variables
     console.log("\n8. Checking authentication environment variables...");
 
     const requiredEnvVars = [
-      'NEXTAUTH_SECRET',
-      'NEXTAUTH_URL',
-      'GOOGLE_CLIENT_ID',
-      'GOOGLE_CLIENT_SECRET'
+      "NEXTAUTH_SECRET",
+      "NEXTAUTH_URL",
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET",
     ];
 
-    const envStatus = requiredEnvVars.map(varName => {
+    const envStatus = requiredEnvVars.map((varName) => {
       const value = process.env[varName];
       return {
         name: varName,
         configured: !!value,
-        length: value ? value.length : 0
+        length: value ? value.length : 0,
       };
     });
 
-    envStatus.forEach(env => {
+    envStatus.forEach((env) => {
       if (env.configured) {
         console.log(`✅ ${env.name}: configured (${env.length} chars)`);
       } else {
@@ -188,9 +217,11 @@ async function testCompleteAuthFlow() {
       // Clean up
       await db.user.delete({ where: { id: newUser.id } });
       console.log("✅ Test user cleaned up");
-
     } catch (error) {
-      console.log("❌ User creation flow failed:", error.message);
+      console.log(
+        "❌ User creation flow failed:",
+        error instanceof Error ? error.message : String(error),
+      );
     }
 
     // Test 10: Summary and next steps
@@ -214,9 +245,12 @@ async function testCompleteAuthFlow() {
 
     console.log("\n🐛 If OAuth fails:");
     console.log("• Check Google OAuth credentials in .env");
-    console.log("• Verify http://localhost:3000 is in Google OAuth authorized origins");
-    console.log("• Check http://localhost:3000/api/auth/callback/google is in authorized redirect URIs");
-
+    console.log(
+      "• Verify http://localhost:3000 is in Google OAuth authorized origins",
+    );
+    console.log(
+      "• Check http://localhost:3000/api/auth/callback/google is in authorized redirect URIs",
+    );
   } catch (error) {
     console.error("\n❌ Authentication test failed:", error);
     console.log("\nTroubleshooting:");
