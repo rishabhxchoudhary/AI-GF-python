@@ -14,7 +14,13 @@ You are an expert full-stack engineer tasked with analyzing the existing Python 
 - AI integration patterns
 - Data structures and storage
 
-**SECOND:** Create a complete T3 stack implementation in a new `/web` folder that replicates ALL functionality with modern web technologies.
+**SECOND:** Create a complete T3 stack implementation in a new `/web` folder that replicates ALL functionality PLUS adds a credit-based monetization system with:
+- Credit-based chat system (users buy credits to chat)
+- Pricing page with different credit packages
+- Landing/home page for user acquisition
+- Payment integration (Stripe)
+- Credit consumption tracking
+- Usage analytics and limits
 
 ## 🛠️ Required Tech Stack (T3 Stack + Adaptations)
 
@@ -47,14 +53,20 @@ You are an expert full-stack engineer tasked with analyzing the existing Python 
 │   │   ├── (dashboard)/
 │   │   │   ├── chat/
 │   │   │   ├── personality/
+│   │   │   ├── credits/
 │   │   │   └── settings/
+│   │   ├── (marketing)/
+│   │   │   ├── pricing/
+│   │   │   ├── features/
+│   │   │   └── about/
 │   │   ├── api/
 │   │   │   ├── auth/
 │   │   │   ├── trpc/
+│   │   │   ├── stripe/
 │   │   │   └── webhooks/
 │   │   ├── globals.css
 │   │   ├── layout.tsx
-│   │   └── page.tsx
+│   │   └── page.tsx                  # Landing page
 │   ├── components/
 │   │   ├── ui/                       # shadcn/ui components
 │   │   ├── chat/
@@ -67,7 +79,9 @@ You are an expert full-stack engineer tasked with analyzing the existing Python 
 │   │   │   │   ├── personality.ts
 │   │   │   │   ├── relationship.ts
 │   │   │   │   ├── memory.ts
-│   │   │   │   └── temporal.ts
+│   │   │   │   ├── temporal.ts
+│   │   │   │   ├── credits.ts
+│   │   │   │   └── payments.ts
 │   │   │   ├── root.ts
 │   │   │   └── trpc.ts
 │   │   ├── auth.ts
@@ -76,16 +90,23 @@ You are an expert full-stack engineer tasked with analyzing the existing Python 
 │   │   ├── auth.ts                   # NextAuth config
 │   │   ├── db.ts                     # DynamoDB client
 │   │   ├── ai.ts                     # AI service clients
+│   │   ├── stripe.ts                 # Stripe configuration
 │   │   ├── utils.ts
 │   │   └── validations.ts
 │   ├── types/
 │   │   ├── personality.ts
 │   │   ├── relationship.ts
 │   │   ├── memory.ts
+│   │   ├── credits.ts
+│   │   ├── payments.ts
 │   │   └── database.ts
 │   ├── hooks/
 │   ├── stores/                       # Zustand stores
-│   └── trpc/                         # tRPC client setup
+│   ├── trpc/                         # tRPC client setup
+│   └── components/
+│       ├── marketing/                # Landing page components
+│       ├── pricing/                  # Pricing page components
+│       └── credits/                  # Credit management components
 ├── prisma/
 │   └── schema.prisma                 # For type generation (DynamoDB adapter)
 ├── prompts/                          # AI system prompts (migrated)
@@ -107,9 +128,11 @@ Analyze each Python file and recreate equivalent TypeScript modules:
 // Example: Migrate personality_manager.py to tRPC router
 // server/api/routers/personality.ts
 export const personalityRouter = createTRPCRouter({
-  getPersonality: publicProcedure
+  getPersonality: privateProcedure
     .input(z.object({ userId: z.string() }))
     .query(async ({ input, ctx }) => {
+      // Check user has credits before accessing
+      await checkUserCredits(ctx.session.user.id);
       // Replicate PersonalityManager functionality
     }),
     
@@ -117,6 +140,41 @@ export const personalityRouter = createTRPCRouter({
     .input(PersonalityUpdateSchema)
     .mutation(async ({ input, ctx }) => {
       // Replicate trait evolution logic
+    }),
+});
+
+// New: Credits system router
+// server/api/routers/credits.ts
+export const creditsRouter = createTRPCRouter({
+  getUserCredits: privateProcedure
+    .query(async ({ ctx }) => {
+      return await getUserCredits(ctx.session.user.id);
+    }),
+    
+  deductCredits: privateProcedure
+    .input(z.object({ amount: z.number(), reason: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      return await deductUserCredits(ctx.session.user.id, input.amount, input.reason);
+    }),
+});
+
+// New: Payment system router
+// server/api/routers/payments.ts
+export const paymentsRouter = createTRPCRouter({
+  createCheckoutSession: privateProcedure
+    .input(z.object({ 
+      packageId: z.string(),
+      credits: z.number(),
+      price: z.number()
+    }))
+    .mutation(async ({ input, ctx }) => {
+      // Create Stripe checkout session
+    }),
+    
+  handleWebhook: publicProcedure
+    .input(z.object({ sessionId: z.string() }))
+    .mutation(async ({ input }) => {
+      // Handle successful payment and add credits
     }),
 });
 ```
@@ -129,12 +187,36 @@ Create a Prisma schema that works with DynamoDB adapter:
 model User {
   id            String        @id @default(cuid())
   email         String        @unique
-  personality   Json?         // Personality traits object
-  relationship  Json?         // Relationship state
+  credits       Int           @default(0)
+  totalSpent    Float         @default(0)
+  personality   Json?         # Personality traits object
+  relationship  Json?         # Relationship state
   memories      Memory[]
   conversations Conversation[]
+  purchases     Purchase[]
+  creditUsage   CreditUsage[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+}
+
+model Purchase {
+  id            String   @id @default(cuid())
+  userId        String
+  stripeId      String   @unique
+  credits       Int
+  amount        Float
+  status        String   # pending, completed, failed
+  user          User     @relation(fields: [userId], references: [id])
+  createdAt     DateTime @default(now())
+}
+
+model CreditUsage {
+  id          String   @id @default(cuid())
+  userId      String
+  credits     Int      # Amount deducted
+  reason      String   # chat_message, personality_update, etc.
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
 }
 
 model Conversation {
@@ -147,11 +229,11 @@ model Conversation {
 
 // Actual DynamoDB table structure
 interface DynamoRecord {
-  PK: string          // USER#{userId} | CONV#{conversationId}
-  SK: string          // PROFILE | MEMORY#{type} | MSG#{timestamp}
-  GSI1PK?: string     // EMAIL#{email} | TIME#{date}
-  GSI1SK?: string     // USER | CONV
-  type: string        // user | personality | relationship | memory | conversation
+  PK: string          // USER#{userId} | CONV#{conversationId} | PURCHASE#{purchaseId}
+  SK: string          // PROFILE | MEMORY#{type} | MSG#{timestamp} | CREDIT_USAGE#{timestamp}
+  GSI1PK?: string     // EMAIL#{email} | TIME#{date} | CREDITS#{userId}
+  GSI1SK?: string     // USER | CONV | USAGE
+  type: string        // user | personality | relationship | memory | conversation | purchase | credit_usage
   data: any           // Actual record data
   ttl?: number        // Auto-expire for old conversations
 }
@@ -170,6 +252,8 @@ export const appRouter = createTRPCRouter({
   memory: memoryRouter,
   temporal: temporalRouter,
   agentic: agenticRouter,
+  credits: creditsRouter,
+  payments: paymentsRouter,
 });
 
 // Example chat router replicating main.py chat logic
@@ -180,6 +264,17 @@ export const chatRouter = createTRPCRouter({
       conversationId: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
+      // 0. Check and deduct credits (1 credit per message)
+      const userCredits = await getUserCredits(ctx.session.user.id);
+      if (userCredits < 1) {
+        throw new TRPCError({ 
+          code: 'FORBIDDEN', 
+          message: 'Insufficient credits. Please purchase more credits to continue chatting.' 
+        });
+      }
+      
+      await deductUserCredits(ctx.session.user.id, 1, 'chat_message');
+      
       // 1. Analyze user message (replicate analyze_and_update_from_text)
       // 2. Update personality traits
       // 3. Check relationship progression
@@ -205,10 +300,18 @@ export function ChatInterface() {
   const { data: session } = useSession();
   const [message, setMessage] = useState('');
   
+  const { data: userCredits } = api.credits.getUserCredits.useQuery();
+  
   const sendMessage = api.chat.sendMessage.useMutation({
     onSuccess: (response) => {
       // Simulate typing with delays like Python version
       simulateTypingResponse(response);
+    },
+    onError: (error) => {
+      if (error.data?.code === 'FORBIDDEN') {
+        // Redirect to pricing page
+        router.push('/pricing');
+      }
     }
   });
   
@@ -216,15 +319,21 @@ export function ChatInterface() {
   
   return (
     <div className="flex h-screen flex-col">
-      <ChatHeader />
-      <MessageList messages={conversations?.messages || []} />
-      <TypingIndicator isVisible={sendMessage.isLoading} />
-      <MessageInput 
-        value={message}
-        onChange={setMessage}
-        onSend={() => sendMessage.mutate({ message })}
-        disabled={sendMessage.isLoading}
-      />
+      <ChatHeader credits={userCredits?.credits || 0} />
+      {userCredits?.credits === 0 ? (
+        <LowCreditsWarning />
+      ) : (
+        <>
+          <MessageList messages={conversations?.messages || []} />
+          <TypingIndicator isVisible={sendMessage.isLoading} />
+          <MessageInput 
+            value={message}
+            onChange={setMessage}
+            onSend={() => sendMessage.mutate({ message })}
+            disabled={sendMessage.isLoading || userCredits?.credits === 0}
+          />
+        </>
+      )}
     </div>
   );
 }
@@ -295,7 +404,7 @@ export class AIClient {
 }
 ```
 
-## 🎯 Key Features to Migrate
+## 🎯 Key Features to Migrate + New Features
 
 ### From Python files, ensure you replicate:
 
@@ -305,6 +414,15 @@ export class AIClient {
 4. **agentic_behaviors.py** → Human-like spontaneous responses
 5. **main.py** → Core chat loop and AI integration
 6. **prompts/v1/** → All system prompts and templates
+
+### New Credit-Based System Features:
+
+1. **Landing Page** → Marketing site with hero section, features, testimonials
+2. **Pricing Page** → Credit packages (e.g., 10 credits $5, 50 credits $20, 100 credits $35)
+3. **Credit Management** → Real-time credit tracking, usage history, low credit warnings
+4. **Payment Integration** → Stripe checkout, webhook handling, purchase confirmations
+5. **Usage Analytics** → Track credit consumption patterns, popular features
+6. **Free Trial** → New users get 5 free credits to try the system
 
 ### Real-time Features
 - Message typing simulation with realistic delays
@@ -332,8 +450,11 @@ npm install zustand @tanstack/react-query
 npm install ai openai @huggingface/inference
 npm install zod @hookform/resolvers react-hook-form
 npm install framer-motion lucide-react
+npm install stripe @stripe/stripe-js
+npm install @radix-ui/react-icons
 npx shadcn-ui@latest init
-npx shadcn-ui@latest add button input card avatar
+npx shadcn-ui@latest add button input card avatar badge alert-dialog
+npx shadcn-ui@latest add pricing-card progress toast
 ```
 
 ## ⚡ Code Quality Standards (From .rules)
@@ -347,6 +468,7 @@ npx shadcn-ui@latest add button input card avatar
 
 ## 📋 Migration Checklist
 
+### Core Migration
 - [ ] Analyze all Python files and understand architecture
 - [ ] Set up T3 stack project in `/web` folder
 - [ ] Configure DynamoDB with Prisma adapter
@@ -357,21 +479,39 @@ npx shadcn-ui@latest add button input card avatar
 - [ ] Migrate AI integration and prompts
 - [ ] Create real-time chat interface
 - [ ] Implement user authentication
-- [ ] Add responsive design
+
+### Credit System & Monetization
+- [ ] Design and implement landing page
+- [ ] Create pricing page with credit packages
+- [ ] Set up Stripe integration and webhooks
+- [ ] Implement credit tracking and deduction system
+- [ ] Add credit usage analytics
+- [ ] Create low credit warnings and purchasing flow
+- [ ] Implement free trial system (5 credits for new users)
+- [ ] Add purchase history and receipt generation
+
+### Production Ready
+- [ ] Add responsive design for mobile
 - [ ] Set up deployment configuration
 - [ ] Add comprehensive error handling
 - [ ] Write tests for core functionality
 - [ ] Performance optimization
 - [ ] Security audit
+- [ ] Add monitoring and analytics
+- [ ] Set up customer support system
 
 ## 🚀 Deployment & Production
 
 - Configure Vercel deployment with environment variables
-- Set up DynamoDB tables with proper indexes
+- Set up DynamoDB tables with proper indexes  
 - Configure NextAuth providers (Google, GitHub, etc.)
+- Set up Stripe webhooks and payment processing
 - Add monitoring and error tracking
 - Implement rate limiting and abuse prevention
 - Add comprehensive logging
+- Configure domain and SSL certificates
+- Set up customer analytics (conversion tracking, usage metrics)
+- Create admin dashboard for monitoring users and payments
 
 ## 🎯 Success Criteria
 
@@ -382,9 +522,25 @@ The migrated application should:
 - Maintain the same personality evolution algorithms
 - Support real-time chat with typing indicators
 - Have proper authentication and user management
+- **Include a complete credit-based monetization system**
+- **Have an attractive landing page for user acquisition**
+- **Implement Stripe payment processing**
+- **Track and display credit usage analytics**
 - Be production-ready and scalable
 - Follow all code quality standards
+- Generate revenue through credit sales
 
-**Remember**: This is an adult-oriented application. Implement appropriate content warnings, age verification, and safety measures throughout the system.
+### Credit System Specifications:
+- **Pricing Tiers**: 
+  - 10 credits for $4.99
+  - 50 credits for $19.99 (20% bonus)
+  - 100 credits for $34.99 (30% bonus)
+  - 250 credits for $79.99 (35% bonus)
+- **Credit Consumption**: 1 credit per message sent
+- **Free Trial**: 5 credits for new users
+- **Credit Expiry**: Credits never expire
+- **Refund Policy**: Clear refund policy for unused credits
 
-Start by creating the T3 app in the `/web` folder, then systematically migrate each Python component to modern TypeScript equivalents using tRPC, ensuring no functionality is lost in translation.
+**Remember**: This is an adult-oriented application with a monetization model. Implement appropriate content warnings, age verification, payment security, and safety measures throughout the system.
+
+Start by creating the T3 app in the `/web` folder, then systematically migrate each Python component to modern TypeScript equivalents using tRPC, while building the credit system and marketing pages for a complete SaaS product.
