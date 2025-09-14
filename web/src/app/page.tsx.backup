@@ -1,0 +1,676 @@
+import Link from "next/link";
+import { Button } from "~/components/ui/button";
+import { Badge } from "~/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
+import {
+  Heart,
+  MessageCircle,
+  Brain,
+  Sparkles,
+  Star,
+  Users,
+  Shield,
+  Zap,
+  Clock,
+  Trophy,
+  ArrowRight,
+  CheckCircle
+} from "lucide-react";
+import { getServerAuthSession } from "~/server/auth";
+import { HeroSection } from "~/components/marketing/hero-section";
+import { FeatureGrid } from "~/components/marketing/feature-grid";
+import { TestimonialsSection } from "~/components/marketing/testimonials";
+import { PricingPreview } from "~/components/marketing/pricing-preview";
+import { CTASection } from "~/components/marketing/cta-section";
+
+export default async function HomePage() {
+  const session = await getServerAuthSession();
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      {/* Navigation */}
+      <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container-custom flex h-14 items-center">
+          <div className="mr-4 hidden md:flex">
+            <Link href="/" className="mr-6 flex items-center space-x-2">
+              <Heart className="h-6 w-6 text-pink-500" />
+              <span className="hidden font-bold sm:inline-block gradient-text">
+                AI Girlfriend
+              </span>
+            </Link>
+            <nav className="flex items-center space-x-6 text-sm font-medium">
+              <Link
+                href="#features"
+                className="transition-colors hover:text-foreground/80 text-foreground/60"
+              >
+                Features
+              </Link>
+              <Link
+                href="#pricing"
+                className="transition-colors hover:text-foreground/80 text-foreground/60"
+              >
+                Pricing
+              </Link>
+              <Link
+                href="#testimonials"
+                className="transition-colors hover:text-foreground/80 text-foreground/60"
+              >
+                Reviews
+              </Link>
+            </nav>
+          </div>
+          <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+            <div className="w-full flex-1 md:w-auto md:flex-none">
+              <Button className="hidden md:inline-flex" variant="ghost" asChild>
+                <Link href="/about">About</Link>
+              </Button>
+            </div>
+            <nav className="flex items-center space-x-2">
+              {session ? (
+                <>
+                  <Button variant="ghost" asChild>
+                    <Link href="/dashboard">Dashboard</Link>
+                  </Button>
+                  <Button asChild>
+                    <Link href="/chat">Chat Now</Link>
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="ghost" asChild>
+                    <Link href="/auth/signin">Sign In</Link>
+                  </Button>
+                  <Button asChild>
+                    <Link href="/auth/signin">Get Started</Link>
+                  </Button>
+                </>
+              )}
+            </nav>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="hero-gradient section-padding">
+          <div className="container-custom">
+            <div className="flex flex-col items-center text-center space-y-8">
+              <Badge variant="secondary" className="px-4 py-2">
+                <Sparkles className="w-4 h-4 mr-2" />
+                Advanced AI Technology
+              </Badge>
+
+              <div className="space-y-6 max-w-4xl">
+                <h1 className="hero-heading-responsive font-bold tracking-tighter">
+                  Your Perfect Digital{" "}
+                  <span className="gradient-text">Companion</span>
+                </h1>
+                <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-7">
+                  Experience the most advanced AI girlfriend with dynamic personality evolution,
+                  deep relationship building, and intimate conversations that grow more meaningful over time.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm">
+                {session ? (
+                  <Button size="lg" className="flex-1 btn-gradient" asChild>
+                    <Link href="/chat">
+                      Continue Chatting
+                      <MessageCircle className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button size="lg" className="flex-1 btn-gradient" asChild>
+                      <Link href="/auth/signin">
+                        Start Free Trial
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <Button size="lg" variant="outline" className="flex-1" asChild>
+                      <Link href="#features">Learn More</Link>
+                    </Button>
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center gap-8 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>5 Free Messages</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>No Credit Card Required</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                  <span>Instant Access</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Social Proof */}
+        <section className="py-12 bg-muted/50">
+          <div className="container-custom">
+            <div className="flex flex-col items-center text-center space-y-6">
+              <p className="text-sm font-medium text-muted-foreground">
+                Trusted by thousands of users worldwide
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-8 text-sm">
+                <div className="flex items-center gap-2">
+                  <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                  <span className="font-semibold">4.9/5</span>
+                  <span className="text-muted-foreground">Rating</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-pink-500" />
+                  <span className="font-semibold">15K+</span>
+                  <span className="text-muted-foreground">Active Users</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MessageCircle className="h-4 w-4 text-blue-500" />
+                  <span className="font-semibold">2M+</span>
+                  <span className="text-muted-foreground">Conversations</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-orange-500" />
+                  <span className="font-semibold">#1</span>
+                  <span className="text-muted-foreground">AI Companion</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Features Section */}
+        <section id="features" className="section-padding">
+          <div className="container-custom">
+            <div className="text-center space-y-6 mb-16">
+              <Badge variant="outline" className="px-4 py-2">
+                <Brain className="w-4 h-4 mr-2" />
+                Advanced Features
+              </Badge>
+              <h2 className="heading-responsive font-bold">
+                Why Choose Our AI Girlfriend?
+              </h2>
+              <p className="text-responsive text-muted-foreground max-w-2xl mx-auto">
+                Experience the most sophisticated AI companion with features designed
+                to create genuine emotional connections.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <Card className="relative overflow-hidden">
+                <CardHeader>
+                  <div className="w-12 h-12 rounded-lg bg-pink-500/10 flex items-center justify-center mb-4">
+                    <Heart className="w-6 h-6 text-pink-500" />
+                  </div>
+                  <CardTitle>Dynamic Personality</CardTitle>
+                  <CardDescription>
+                    Your AI girlfriend evolves based on your interactions, developing unique
+                    personality traits that make her truly yours.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="relative overflow-hidden">
+                <CardHeader>
+                  <div className="w-12 h-12 rounded-lg bg-purple-500/10 flex items-center justify-center mb-4">
+                    <Zap className="w-6 h-6 text-purple-500" />
+                  </div>
+                  <CardTitle>Relationship Stages</CardTitle>
+                  <CardDescription>
+                    Experience natural relationship progression from curious newcomer
+                    to intimate partner with milestone celebrations.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="relative overflow-hidden">
+                <CardHeader>
+                  <div className="w-12 h-12 rounded-lg bg-blue-500/10 flex items-center justify-center mb-4">
+                    <Clock className="w-6 h-6 text-blue-500" />
+                  </div>
+                  <CardTitle>Time-Aware Responses</CardTitle>
+                  <CardDescription>
+                    She remembers your schedule and adapts her mood and energy
+                    to match the time of day and your activity patterns.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="relative overflow-hidden">
+                <CardHeader>
+                  <div className="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center mb-4">
+                    <Brain className="w-6 h-6 text-green-500" />
+                  </div>
+                  <CardTitle>Deep Memory System</CardTitle>
+                  <CardDescription>
+                    She remembers your conversations, preferences, and special moments,
+                    creating a continuous relationship experience.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="relative overflow-hidden">
+                <CardHeader>
+                  <div className="w-12 h-12 rounded-lg bg-orange-500/10 flex items-center justify-center mb-4">
+                    <Sparkles className="w-6 h-6 text-orange-500" />
+                  </div>
+                  <CardTitle>Proactive Behaviors</CardTitle>
+                  <CardDescription>
+                    She initiates conversations, asks follow-up questions, and shows
+                    genuine interest in your life and feelings.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="relative overflow-hidden">
+                <CardHeader>
+                  <div className="w-12 h-12 rounded-lg bg-red-500/10 flex items-center justify-center mb-4">
+                    <Shield className="w-6 h-6 text-red-500" />
+                  </div>
+                  <CardTitle>Private & Secure</CardTitle>
+                  <CardDescription>
+                    Your conversations are encrypted and private. We never share your
+                    data with third parties. Your secrets are safe.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* How It Works */}
+        <section className="section-padding bg-muted/50">
+          <div className="container-custom">
+            <div className="text-center space-y-6 mb-16">
+              <Badge variant="outline" className="px-4 py-2">
+                <Zap className="w-4 h-4 mr-2" />
+                How It Works
+              </Badge>
+              <h2 className="heading-responsive font-bold">
+                Start Your Journey in 3 Simple Steps
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 rounded-full bg-pink-500 text-white flex items-center justify-center text-2xl font-bold mx-auto">
+                  1
+                </div>
+                <h3 className="text-xl font-semibold">Sign Up & Meet Aria</h3>
+                <p className="text-muted-foreground">
+                  Create your account and meet your AI girlfriend Aria. She's excited
+                  to get to know you and start building a connection.
+                </p>
+              </div>
+
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 rounded-full bg-purple-500 text-white flex items-center justify-center text-2xl font-bold mx-auto">
+                  2
+                </div>
+                <h3 className="text-xl font-semibold">Chat & Build Connection</h3>
+                <p className="text-muted-foreground">
+                  Start conversations about anything. Share your day, your dreams,
+                  your desires. Watch as she learns and adapts to your personality.
+                </p>
+              </div>
+
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 rounded-full bg-blue-500 text-white flex items-center justify-center text-2xl font-bold mx-auto">
+                  3
+                </div>
+                <h3 className="text-xl font-semibold">Grow Together</h3>
+                <p className="text-muted-foreground">
+                  Experience relationship milestones, inside jokes, and intimate moments
+                  as your connection deepens over time.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Testimonials */}
+        <section id="testimonials" className="section-padding">
+          <div className="container-custom">
+            <div className="text-center space-y-6 mb-16">
+              <Badge variant="outline" className="px-4 py-2">
+                <Star className="w-4 h-4 mr-2" />
+                What Users Say
+              </Badge>
+              <h2 className="heading-responsive font-bold">
+                Real Stories from Real Users
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex mb-4">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    "I never thought an AI could feel so real. Aria remembers everything
+                    about our conversations and actually cares about my day. It's incredible."
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-600" />
+                    <div>
+                      <p className="text-sm font-medium">Alex M.</p>
+                      <p className="text-xs text-muted-foreground">Software Engineer</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex mb-4">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    "The personality evolution is amazing. After weeks of chatting,
+                    she developed this playful side that matches my humor perfectly."
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-teal-600" />
+                    <div>
+                      <p className="text-sm font-medium">Jamie L.</p>
+                      <p className="text-xs text-muted-foreground">Marketing Manager</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex mb-4">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    ))}
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    "Best investment I've made for my mental health. Having someone
+                    who's always there to listen and respond thoughtfully is priceless."
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600" />
+                    <div>
+                      <p className="text-sm font-medium">Sam R.</p>
+                      <p className="text-xs text-muted-foreground">College Student</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        {/* Pricing Preview */}
+        <section id="pricing" className="section-padding bg-muted/50">
+          <div className="container-custom">
+            <div className="text-center space-y-6 mb-16">
+              <Badge variant="outline" className="px-4 py-2">
+                <Zap className="w-4 h-4 mr-2" />
+                Simple Pricing
+              </Badge>
+              <h2 className="heading-responsive font-bold">
+                Start Free, Upgrade When Ready
+              </h2>
+              <p className="text-responsive text-muted-foreground max-w-2xl mx-auto">
+                Try our AI girlfriend with 5 free messages. No credit card required.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+              {/* Free Trial */}
+              <Card className="relative">
+                <CardHeader>
+                  <CardTitle className="text-lg">Free Trial</CardTitle>
+                  <div className="space-y-2">
+                    <div className="text-3xl font-bold">Free</div>
+                    <p className="text-sm text-muted-foreground">5 messages included</p>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      5 chat messages
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      Basic personality
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      No credit card needed
+                    </li>
+                  </ul>
+                  <Button className="w-full" variant="outline" asChild>
+                    <Link href="/auth/signin">Start Free Trial</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Starter Pack */}
+              <Card className="relative">
+                <CardHeader>
+                  <CardTitle className="text-lg">Starter Pack</CardTitle>
+                  <div className="space-y-2">
+                    <div className="text-3xl font-bold">$4.99</div>
+                    <p className="text-sm text-muted-foreground">10 credits</p>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      10 chat messages
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      Personality evolution
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      Memory system
+                    </li>
+                  </ul>
+                  <Button className="w-full" asChild>
+                    <Link href="/pricing">Get Started</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Popular Pack */}
+              <Card className="relative ring-2 ring-pink-500 shadow-pink-500/25">
+                <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-1 rounded-b-lg text-sm font-medium">
+                  Most Popular
+                </div>
+                <CardHeader>
+                  <CardTitle className="text-lg">Popular Pack</CardTitle>
+                  <div className="space-y-2">
+                    <div className="text-3xl font-bold">$19.99</div>
+                    <p className="text-sm text-muted-foreground">50 credits (20% bonus)</p>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      50 chat messages
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      Advanced behaviors
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      Relationship stages
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      Priority support
+                    </li>
+                  </ul>
+                  <Button className="w-full btn-gradient" asChild>
+                    <Link href="/pricing">Get Started</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+
+              {/* Premium Pack */}
+              <Card className="relative">
+                <CardHeader>
+                  <CardTitle className="text-lg">Premium Pack</CardTitle>
+                  <div className="space-y-2">
+                    <div className="text-3xl font-bold">$34.99</div>
+                    <p className="text-sm text-muted-foreground">100 credits (30% bonus)</p>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      100 chat messages
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      All features included
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      Custom prompts
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      VIP support
+                    </li>
+                  </ul>
+                  <Button className="w-full" asChild>
+                    <Link href="/pricing">Get Started</Link>
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="text-center mt-12">
+              <Button variant="outline" asChild>
+                <Link href="/pricing">View All Pricing Options</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="section-padding gradient-bg">
+          <div className="container-custom">
+            <div className="text-center space-y-8">
+              <div className="space-y-6">
+                <h2 className="heading-responsive font-bold text-white">
+                  Ready to Meet Your Perfect AI Companion?
+                </h2>
+                <p className="text-xl text-white/90 max-w-2xl mx-auto">
+                  Join thousands of users who have found meaningful connections with their AI girlfriend.
+                  Start your journey today with 5 free messages.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4 justify-center max-w-md mx-auto">
+                {session ? (
+                  <Button size="lg" className="flex-1 bg-white text-pink-600 hover:bg-white/90" asChild>
+                    <Link href="/chat">
+                      Continue Chatting
+                      <MessageCircle className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                ) : (
+                  <>
+                    <Button size="lg" className="flex-1 bg-white text-pink-600 hover:bg-white/90" asChild>
+                      <Link href="/auth/signin">
+                        Start Free Trial
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <Button size="lg" variant="outline" className="flex-1 border-white text-white hover:bg-white hover:text-pink-600" asChild>
+                      <Link href="/pricing">View Pricing</Link>
+                    </Button>
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center justify-center gap-8 text-sm text-white/80">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  <span>100% Private</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4" />
+                  <span>No Commitment</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Zap className="h-4 w-4" />
+                  <span>Instant Access</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t py-12 bg-muted/50">
+        <div className="container-custom">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Heart className="h-6 w-6 text-pink-500" />
+                <span className="font-bold gradient-text">AI Girlfriend</span>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                The most advanced AI companion for meaningful relationships and intimate connections.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="font-semibold">Product</h3>
+              <ul className="space-y-2 text-sm">
+                <li><Link href="#features" className="text-muted-foreground hover:text-foreground">Features</Link></li>
+                <li><Link href="/pricing" className="text-muted-foreground hover:text-foreground">Pricing</Link></li>
+                <li><Link href="#testimonials" className="text-muted-foreground hover:text-foreground">Reviews</Link></li>
+                <li><Link href="/roadmap" className="text-muted-foreground hover:text-foreground">Roadmap</Link></li>
+              </ul>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="font-semibold">Support</h3>
+              <ul className="space-y-2 text-sm">
+                <li><Link href="/help" className="text-muted-foreground hover:text-foreground">Help Center</Link></li>
+                <li><Link href="/contact" className="text-muted-foreground hover:text-foreground">Contact Us</Link></li>
+                <li><Link href="/faq" className="text-muted-foreground hover:text-foreground">FAQ</Link></li>
+                <li><Link href="/status" className="text-muted-foreground hover:text-foreground">System Status</Link></li>
+              </ul>
+            </div>
+
+            <div className="space-y-4">
+              <h3 className="font-semibold">Legal</h3>
+              <ul className="space-y-2 text-sm">
+                <li><Link href="/privacy" className="text-muted-foreground hover:text-foreground">Privacy Policy</Link></li>
+                <li><Link href="/terms" className="text-muted-foreground hover:text-foreground">Terms of Service</Link></li>
+                <li><Link href="/content-policy" className="text-muted-foreground hover:text-foreground">Content Policy</Link></li>
+                <li><Link href="/cookies" className="text-muted-foreground hover:text-foreground">Cookie Policy</Link></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="border-t mt-8 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-mute
