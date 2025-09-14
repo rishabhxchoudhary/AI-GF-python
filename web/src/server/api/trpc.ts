@@ -11,7 +11,8 @@ import { type CreateNextContextOptions } from "@trpc/server/adapters/next";
 import superjson from "superjson";
 import { ZodError } from "zod";
 
-import { getServerAuthSession, type Session } from "~/server/auth-simple";
+import { getServerAuthSession } from "~/server/auth";
+import { type Session } from "next-auth";
 import { db } from "~/server/db";
 
 /**
@@ -53,7 +54,32 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   const { req, res } = opts;
 
   // Get the session from the server using the getServerAuthSession wrapper function
-  const session = await getServerAuthSession();
+  let session = await getServerAuthSession();
+
+  // Development mode: bypass authentication by creating mock session
+  if (!session && process.env.NODE_ENV === "development") {
+    // Find test user
+    const testUser = await db.user.findUnique({
+      where: { email: "test@example.com" },
+    });
+
+    if (testUser) {
+      session = {
+        user: {
+          id: testUser.id,
+          email: testUser.email,
+          name: testUser.name || "Test User",
+          image: null,
+          credits: testUser.credits,
+          totalSpent: testUser.totalSpent,
+          relationshipStage: testUser.relationshipStage,
+          totalInteractions: testUser.totalInteractions,
+        },
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      };
+      console.log("🔧 Development mode: Using test user session");
+    }
+  }
 
   return createInnerTRPCContext({
     session,
@@ -113,14 +139,76 @@ export const publicProcedure = t.procedure;
  *
  * @see https://trpc.io/docs/procedures
  */
-export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
-  if (!ctx.session || !ctx.session.user) {
-    throw new TRPCError({ code: "UNAUTHORIZED" });
+export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
+  // Development bypass: Allow access if no session but test user exists
+  if (
+    (!ctx.session || !ctx.session.user) &&
+    process.env.NODE_ENV === "development"
+  ) {
+    console.log("🔧 Development mode: Bypassing authentication for tRPC");
+
+    // Find test user for development
+    const testUser = await ctx.db.user.findUnique({
+      where: { email: "test@example.com" },
+    });
+
+    if (testUser) {
+      const mockSession = {
+        user: {
+          id: testUser.id,
+          email: testUser.email,
+          name: testUser.name || "Test User",
+          image: null,
+          credits: testUser.credits,
+          totalSpent: testUser.totalSpent,
+          relationshipStage: testUser.relationshipStage,
+          totalInteractions: testUser.totalInteractions,
+        },
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      };
+
+      return next({
+        ctx: {
+          session: mockSession,
+          user: testUser,
+        },
+      });
+    }
   }
+
+  if (!ctx.session || !ctx.session.user) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "You must be signed in to access this resource",
+    });
+  }
+
+  // Get fresh user data from database to ensure we have latest credits, etc.
+  const user = await ctx.db.user.findUnique({
+    where: { id: ctx.session.user.id },
+  });
+
+  if (!user) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "User not found",
+    });
+  }
+
   return next({
     ctx: {
       // infers the `session` as non-nullable
-      session: { ...ctx.session, user: ctx.session.user },
+      session: {
+        ...ctx.session,
+        user: {
+          ...ctx.session.user,
+          credits: user.credits,
+          totalSpent: user.totalSpent,
+          relationshipStage: user.relationshipStage,
+          totalInteractions: user.totalInteractions,
+        },
+      },
+      user,
     },
   });
 });
@@ -130,41 +218,45 @@ export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
  *
  * Ensures user has sufficient credits before allowing the procedure to execute
  */
-export const creditCheckMiddleware = t.middleware(
-  async ({ ctx, next, input }) => {
-    if (!ctx.session?.user?.id) {
-      throw new TRPCError({ code: "UNAUTHORIZED" });
-    }
-
-    // Get user's current credit balance
-    const user = await ctx.db.user.findUnique({
-      where: { id: ctx.session.user.id },
-      select: { credits: true },
-    });
-
-    if (!user) {
-      throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
-    }
-
-    if (user.credits < 1) {
-      throw new TRPCError({
-        code: "FORBIDDEN",
-        message:
-          "Insufficient credits. Please purchase more credits to continue.",
-      });
-    }
-
-    return next({
-      ctx: {
-        ...ctx,
-        user: {
-          ...ctx.session.user,
-          credits: user.credits,
-        },
-      },
+export const creditCheckMiddleware = t.middleware(async ({ ctx, next }) => {
+  if (!ctx.session?.user?.id) {
+    throw new TRPCError({
+      code: "UNAUTHORIZED",
+      message: "You must be signed in to use credits",
     });
   }
-);
+
+  // Get user's current credit balance
+  const user = await ctx.db.user.findUnique({
+    where: { id: ctx.session.user.id },
+    select: { credits: true },
+  });
+
+  if (!user) {
+    throw new TRPCError({
+      code: "NOT_FOUND",
+      message: "User not found",
+    });
+  }
+
+  if (user.credits < 1) {
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message:
+        "Insufficient credits. Please purchase more credits to continue.",
+    });
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      user: {
+        ...ctx.session.user,
+        credits: user.credits,
+      },
+    },
+  });
+});
 
 /**
  * Credit-protected procedure
@@ -201,7 +293,7 @@ export const adminProcedure = protectedProcedure.use(({ ctx, next }) => {
  */
 export const rateLimitMiddleware = (
   limit: number = 10,
-  windowMs: number = 60000
+  windowMs: number = 60000,
 ) =>
   t.middleware(async ({ ctx, next }) => {
     if (!ctx.session?.user?.id) {

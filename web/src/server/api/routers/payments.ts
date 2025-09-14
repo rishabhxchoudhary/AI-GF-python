@@ -149,12 +149,12 @@ async function handleSuccessfulPayment(
         userId,
         credits: -credits, // Negative for credits added
         reason: "bonus", // Purchase completion
-        metadata: {
+        metadata: JSON.stringify({
           purchase_id: purchase.id,
           stripe_session_id: session.id,
           package_name: packageName,
           amount_paid: (session.amount_total || 0) / 100,
-        },
+        }),
       },
     });
 
@@ -163,12 +163,12 @@ async function handleSuccessfulPayment(
       data: {
         userId,
         action: "purchase_completed",
-        metadata: {
+        metadata: JSON.stringify({
           package_id: packageId,
           credits_purchased: credits,
           amount_paid: (session.amount_total || 0) / 100,
           stripe_session_id: session.id,
-        },
+        }),
       },
     });
   });
@@ -201,11 +201,11 @@ async function handleFailedPayment(
     data: {
       userId,
       action: "purchase_failed",
-      metadata: {
+      metadata: JSON.stringify({
         package_id: packageId,
         failure_reason: "Payment failed during checkout",
         stripe_session_id: session.id,
-      },
+      }),
     },
   });
 }
@@ -304,12 +304,12 @@ export const paymentsRouter = createTRPCRouter({
           data: {
             userId: user.id,
             action: "checkout_initiated",
-            metadata: {
+            metadata: JSON.stringify({
               package_id: input.packageId,
               credits: creditPackage.credits,
               amount: creditPackage.price,
               stripe_session_id: session.id,
-            },
+            }),
           },
         });
 

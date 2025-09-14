@@ -114,7 +114,8 @@ export default function PricingPage() {
             Choose Your Perfect Plan
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-            Start with our free trial and upgrade when you're ready for more meaningful conversations
+            Start with our free trial and upgrade when you&apos;re ready for
+            more meaningful conversations
           </p>
           <Badge variant="secondary" className="text-sm">
             🎉 New users get 5 free credits to start!
@@ -137,7 +138,9 @@ export default function PricingPage() {
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-pink-500 text-white">Most Popular</Badge>
+                    <Badge className="bg-pink-500 text-white">
+                      Most Popular
+                    </Badge>
                   </div>
                 )}
 
@@ -153,9 +156,7 @@ export default function PricingPage() {
 
                 <CardContent>
                   <div className="text-center mb-6">
-                    <div className="text-4xl font-bold mb-2">
-                      ${plan.price}
-                    </div>
+                    <div className="text-4xl font-bold mb-2">${plan.price}</div>
                     <div className="text-lg font-semibold text-pink-600 mb-1">
                       {plan.credits} Credits
                     </div>
@@ -180,9 +181,7 @@ export default function PricingPage() {
 
                   <Button
                     className={`w-full ${
-                      plan.popular
-                        ? "bg-pink-500 hover:bg-pink-600"
-                        : ""
+                      plan.popular ? "bg-pink-500 hover:bg-pink-600" : ""
                     }`}
                     onClick={() => handlePurchase(plan.id)}
                   >
@@ -203,13 +202,16 @@ export default function PricingPage() {
 
         {/* FAQ Section */}
         <div className="mt-20 text-center">
-          <h2 className="text-3xl font-bold mb-8">Frequently Asked Questions</h2>
+          <h2 className="text-3xl font-bold mb-8">
+            Frequently Asked Questions
+          </h2>
           <div className="grid gap-6 md:grid-cols-2 max-w-4xl mx-auto">
             <Card>
               <CardContent className="p-6">
                 <h3 className="font-semibold mb-2">How do credits work?</h3>
                 <p className="text-sm text-muted-foreground">
-                  Each message you send costs 1 credit. Credits never expire and you can purchase more anytime.
+                  Each message you send costs 1 credit. Credits never expire and
+                  you can purchase more anytime.
                 </p>
               </CardContent>
             </Card>
@@ -218,7 +220,8 @@ export default function PricingPage() {
               <CardContent className="p-6">
                 <h3 className="font-semibold mb-2">Can I cancel anytime?</h3>
                 <p className="text-sm text-muted-foreground">
-                  Credits are one-time purchases, not subscriptions. Use them at your own pace with no recurring charges.
+                  Credits are one-time purchases, not subscriptions. Use them at
+                  your own pace with no recurring charges.
                 </p>
               </CardContent>
             </Card>
@@ -227,16 +230,20 @@ export default function PricingPage() {
               <CardContent className="p-6">
                 <h3 className="font-semibold mb-2">Is my data private?</h3>
                 <p className="text-sm text-muted-foreground">
-                  Yes! All conversations are encrypted and stored securely. We never share your personal data.
+                  Yes! All conversations are encrypted and stored securely. We
+                  never share your personal data.
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardContent className="p-6">
-                <h3 className="font-semibold mb-2">What makes this AI special?</h3>
+                <h3 className="font-semibold mb-2">
+                  What makes this AI special?
+                </h3>
                 <p className="text-sm text-muted-foreground">
-                  Our AI learns and evolves with each conversation, developing a unique personality just for you.
+                  Our AI learns and evolves with each conversation, developing a
+                  unique personality just for you.
                 </p>
               </CardContent>
             </Card>
@@ -251,12 +258,11 @@ export default function PricingPage() {
                 Ready to start your digital relationship?
               </h3>
               <p className="mb-6 opacity-90">
-                Join thousands of users who have found their perfect AI companion
+                Join thousands of users who have found their perfect AI
+                companion
               </p>
               <Button variant="secondary" size="lg" asChild>
-                <Link href="/auth/signin">
-                  Start Free Trial
-                </Link>
+                <Link href="/auth/signin">Start Free Trial</Link>
               </Button>
               <p className="text-sm mt-3 opacity-75">
                 5 free credits • No credit card required

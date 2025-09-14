@@ -38,7 +38,7 @@ export const env = createEnv({
     GITHUB_SECRET: z.string().optional(),
     // AI Providers
     OPENAI_API_KEY: z.string().optional(),
-    HUGGINGFACE_API_KEY: z.string().optional(),
+    HUGGINGFACE_API_KEY: z.string().min(1, "Hugging Face API key is required"),
     // Stripe Configuration
     STRIPE_SECRET_KEY: z.string().optional(),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
@@ -131,9 +131,9 @@ export const env = createEnv({
     GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
     GITHUB_ID: process.env.GITHUB_ID,
     GITHUB_SECRET: process.env.GITHUB_SECRET,
-    // AI Providers
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
+    // AI Providers (Hugging Face is primary)
     HUGGINGFACE_API_KEY: process.env.HUGGINGFACE_API_KEY,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     // Stripe Configuration
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,

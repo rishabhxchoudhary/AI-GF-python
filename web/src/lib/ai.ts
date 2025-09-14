@@ -1,9 +1,12 @@
-import { OpenAI } from 'openai';
-import { HfInference } from '@huggingface/inference';
-import { env } from '~/env';
+import { OpenAI } from "openai";
+import { HfInference } from "@huggingface/inference";
+import { env } from "~/env";
 
 export interface AIProvider {
-  generateResponse(prompt: string, options?: AIGenerationOptions): Promise<string>;
+  generateResponse(
+    prompt: string,
+    options?: AIGenerationOptions,
+  ): Promise<string>;
   isAvailable(): boolean;
   getName(): string;
 }
@@ -17,6 +20,7 @@ export interface AIGenerationOptions {
   frequencyPenalty?: number;
   presencePenalty?: number;
   stopSequences?: string[];
+  messages?: any[];
 }
 
 export interface AIResponse {
@@ -29,52 +33,57 @@ export interface AIResponse {
 
 class OpenAIProvider implements AIProvider {
   private client: OpenAI;
-  private model: string = 'gpt-3.5-turbo';
+  private model: string = "gpt-3.5-turbo";
 
   constructor() {
     this.client = new OpenAI({
-      apiKey: env.OPENAI_API_KEY,
+      apiKey: env.OPENAI_API_KEY || "dummy",
     });
   }
 
   getName(): string {
-    return 'openai';
+    return "openai";
   }
 
   isAvailable(): boolean {
     return !!env.OPENAI_API_KEY;
   }
 
-  async generateResponse(userMessage: string, options?: AIGenerationOptions): Promise<string> {
+  async generateResponse(
+    userMessage: string,
+    options?: AIGenerationOptions,
+  ): Promise<string> {
     try {
       const messages: any[] = [];
 
       // Add system message if provided
       if (options?.systemPrompt) {
         messages.push({
-          role: 'system',
+          role: "system",
           content: options.systemPrompt,
         });
       }
 
       // Add conversation history if provided
       if (options?.conversationHistory) {
-        const historyLines = options.conversationHistory.split('\n').filter(line => line.trim());
+        const historyLines = options.conversationHistory
+          .split("\n")
+          .filter((line) => line.trim());
         for (const line of historyLines) {
-          const [role, ...contentParts] = line.split(': ');
-          const content = contentParts.join(': ');
+          const [role, ...contentParts] = line.split(": ");
+          const content = contentParts.join(": ");
 
-          if (role === 'User') {
-            messages.push({ role: 'user', content });
-          } else if (role === 'Aria') {
-            messages.push({ role: 'assistant', content });
+          if (role === "User") {
+            messages.push({ role: "user", content });
+          } else if (role === "Aria") {
+            messages.push({ role: "assistant", content });
           }
         }
       }
 
       // Add current user message
       messages.push({
-        role: 'user',
+        role: "user",
         content: userMessage,
       });
 
@@ -91,70 +100,105 @@ class OpenAIProvider implements AIProvider {
 
       const choice = response.choices[0];
       if (!choice?.message?.content) {
-        throw new Error('No response generated from OpenAI');
+        throw new Error("No response generated from OpenAI");
       }
 
       return choice.message.content.trim();
     } catch (error) {
-      console.error('OpenAI API error:', error);
-      throw new Error(`OpenAI generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("OpenAI API error:", error);
+      throw new Error(
+        `OpenAI generation failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 }
 
 class HuggingFaceProvider implements AIProvider {
   private client: HfInference;
-  private model: string = 'microsoft/DialoGPT-large';
+  private model: string = "Orenguteng/Llama-3.1-8B-Lexi-Uncensored-V2";
 
   constructor() {
     this.client = new HfInference(env.HUGGINGFACE_API_KEY);
   }
 
   getName(): string {
-    return 'huggingface';
+    return "huggingface";
   }
 
   isAvailable(): boolean {
     return !!env.HUGGINGFACE_API_KEY;
   }
 
-  async generateResponse(userMessage: string, options?: AIGenerationOptions): Promise<string> {
+  async generateResponse(
+    userMessage: string,
+    options?: AIGenerationOptions,
+  ): Promise<string> {
     try {
-      // Build prompt with system message and history
-      let fullPrompt = '';
+      // Use chat completions format like the Python version
+      const messages = [];
 
+      // Add system message if provided
       if (options?.systemPrompt) {
-        fullPrompt += `${options.systemPrompt}\n\n`;
+        messages.push({
+          role: "system",
+          content: options.systemPrompt,
+        });
       }
 
+      // Add conversation history if provided
       if (options?.conversationHistory) {
-        fullPrompt += `${options.conversationHistory}\n`;
+        const historyLines = options.conversationHistory
+          .split("\n")
+          .filter((line) => line.trim());
+        for (const line of historyLines) {
+          const [role, ...contentParts] = line.split(": ");
+          const content = contentParts.join(": ");
+
+          if (role === "User") {
+            messages.push({ role: "user", content });
+          } else if (role === "Aria") {
+            messages.push({ role: "assistant", content });
+          }
+        }
       }
 
-      fullPrompt += `User: ${userMessage}\nAria:`;
+      // Add user messages if provided via options
+      if (options?.messages) {
+        messages.push(...options.messages);
+      } else {
+        // Add current user message
+        messages.push({
+          role: "user",
+          content: userMessage,
+        });
+      }
 
-      const response = await this.client.textGeneration({
+      // Use chat completions with streaming like Python version
+      const stream = this.client.chatCompletionStream({
         model: this.model,
-        inputs: fullPrompt,
-        parameters: {
-          max_new_tokens: options?.maxTokens || 200,
-          temperature: options?.temperature || 0.8,
-          top_p: options?.topP || 0.9,
-          repetition_penalty: 1.2,
-          return_full_text: false,
-          stop: options?.stopSequences || ['User:', '\nUser:', 'Human:', '\nHuman:'],
-        },
+        messages: messages,
+        temperature: options?.temperature || 0.9,
+        max_tokens: options?.maxTokens || 200,
+        top_p: options?.topP || 0.95,
+        stream: true,
       });
 
-      if (!response.generated_text) {
-        throw new Error('No response generated from Hugging Face');
+      let finalMessage = "";
+      for await (const chunk of stream) {
+        if (chunk.choices && chunk.choices[0]?.delta?.content) {
+          finalMessage += chunk.choices[0].delta.content;
+        }
+      }
+
+      if (!finalMessage.trim()) {
+        throw new Error("No response generated from Hugging Face");
       }
 
       // Clean up the response
-      let cleanResponse = response.generated_text.trim();
+      let cleanResponse = finalMessage.trim();
 
-      // Remove any remaining prefixes
-      const prefixes = ['Aria:', 'Assistant:', 'AI:'];
+      // Remove any role prefixes
+      const prefixes = ["Aria:", "Assistant:", "AI:", "System:"];
       for (const prefix of prefixes) {
         if (cleanResponse.startsWith(prefix)) {
           cleanResponse = cleanResponse.substring(prefix.length).trim();
@@ -163,8 +207,10 @@ class HuggingFaceProvider implements AIProvider {
 
       return cleanResponse;
     } catch (error) {
-      console.error('Hugging Face API error:', error);
-      throw new Error(`Hugging Face generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Hugging Face API error:", error);
+      throw new Error(
+        `Hugging Face generation failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 }
@@ -172,12 +218,12 @@ class HuggingFaceProvider implements AIProvider {
 class LocalLLMProvider implements AIProvider {
   private baseUrl: string;
 
-  constructor(baseUrl: string = 'http://localhost:11434') {
+  constructor(baseUrl: string = "http://localhost:11434") {
     this.baseUrl = baseUrl;
   }
 
   getName(): string {
-    return 'local-llm';
+    return "local-llm";
   }
 
   isAvailable(): boolean {
@@ -186,10 +232,13 @@ class LocalLLMProvider implements AIProvider {
     return false;
   }
 
-  async generateResponse(userMessage: string, options?: AIGenerationOptions): Promise<string> {
+  async generateResponse(
+    userMessage: string,
+    options?: AIGenerationOptions,
+  ): Promise<string> {
     try {
       // Build prompt for local LLM (Ollama format)
-      let prompt = '';
+      let prompt = "";
 
       if (options?.systemPrompt) {
         prompt += `System: ${options.systemPrompt}\n\n`;
@@ -202,12 +251,12 @@ class LocalLLMProvider implements AIProvider {
       prompt += `User: ${userMessage}\nAssistant:`;
 
       const response = await fetch(`${this.baseUrl}/api/generate`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: 'llama2', // or another model
+          model: "llama2", // or another model
           prompt,
           stream: false,
           options: {
@@ -223,32 +272,37 @@ class LocalLLMProvider implements AIProvider {
       }
 
       const data = await response.json();
-      return data.response?.trim() || '';
+      return data.response?.trim() || "";
     } catch (error) {
-      console.error('Local LLM error:', error);
-      throw new Error(`Local LLM generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error("Local LLM error:", error);
+      throw new Error(
+        `Local LLM generation failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     }
   }
 }
 
 export class AIClient {
   private providers: AIProvider[];
-  private fallbackOrder: string[] = ['openai', 'huggingface', 'local-llm'];
+  private fallbackOrder: string[] = ["huggingface", "openai", "local-llm"];
 
   constructor() {
     this.providers = [
-      new OpenAIProvider(),
       new HuggingFaceProvider(),
+      new OpenAIProvider(),
       new LocalLLMProvider(),
     ];
   }
 
-  async generateResponse(userMessage: string, options?: AIGenerationOptions): Promise<AIResponse> {
+  async generateResponse(
+    userMessage: string,
+    options?: AIGenerationOptions,
+  ): Promise<AIResponse> {
     const errors: string[] = [];
 
     // Try providers in fallback order
     for (const providerName of this.fallbackOrder) {
-      const provider = this.providers.find(p => p.getName() === providerName);
+      const provider = this.providers.find((p) => p.getName() === providerName);
 
       if (!provider || !provider.isAvailable()) {
         errors.push(`Provider ${providerName} is not available`);
@@ -256,13 +310,17 @@ export class AIClient {
       }
 
       try {
-        console.log(`Attempting to generate response using ${provider.getName()}`);
+        console.log(
+          `Attempting to generate response using ${provider.getName()}`,
+        );
         const startTime = Date.now();
 
         const response = await provider.generateResponse(userMessage, options);
 
         const duration = Date.now() - startTime;
-        console.log(`Successfully generated response using ${provider.getName()} in ${duration}ms`);
+        console.log(
+          `Successfully generated response using ${provider.getName()} in ${duration}ms`,
+        );
 
         // Validate response
         if (!response || response.trim().length === 0) {
@@ -271,7 +329,7 @@ export class AIClient {
         }
 
         // Content safety check if enabled
-        if (env.OPENAI_MODERATION_ENABLED && provider.getName() === 'openai') {
+        if (env.OPENAI_MODERATION_ENABLED && provider.getName() === "openai") {
           try {
             await this.performContentModeration(response);
           } catch (moderationError) {
@@ -283,10 +341,11 @@ export class AIClient {
         return {
           text: response,
           provider: provider.getName(),
-          model: provider.getName() === 'openai' ? 'gpt-3.5-turbo' : undefined,
+          model: provider.getName() === "openai" ? "gpt-3.5-turbo" : undefined,
         };
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
         errors.push(`Provider ${providerName} failed: ${errorMessage}`);
         console.warn(`Provider ${provider.getName()} failed:`, error);
         continue;
@@ -294,11 +353,11 @@ export class AIClient {
     }
 
     // If all providers failed, return a fallback response
-    console.error('All AI providers failed:', errors);
+    console.error("All AI providers failed:", errors);
 
     return {
       text: this.getFallbackResponse(userMessage),
-      provider: 'fallback',
+      provider: "fallback",
     };
   }
 
@@ -317,7 +376,7 @@ export class AIClient {
         const categories = Object.entries(result.categories)
           .filter(([, flagged]) => flagged)
           .map(([category]) => category)
-          .join(', ');
+          .join(", ");
 
         throw new Error(`Content flagged for: ${categories}`);
       }
@@ -325,18 +384,18 @@ export class AIClient {
       if (env.CONTENT_SAFETY_STRICT_MODE) {
         throw error;
       } else {
-        console.warn('Content moderation warning:', error);
+        console.warn("Content moderation warning:", error);
       }
     }
   }
 
   private getFallbackResponse(userMessage: string): string {
     const fallbackResponses = [
-      "mmm sorry babe, I'm having some technical difficulties right now... but I'm still so horny for you 😈",
-      "fuck, my brain is being silly right now... but my pussy is still dripping thinking about you 💦",
-      "technical issues babe, but that doesn't change how badly I need your cock right now 🔥",
-      "having some connection problems... but I'm still your devoted little slut 😘",
-      "sorry baby, system glitch... but I'm still here and so fucking wet for you 💋"
+      "mmm sorry babe, I'm having some technical difficulties right now... but I'm still thinking of you 😘",
+      "having some connection issues right now... but I'm still here for you 💕",
+      "technical hiccup babe, but that doesn't change how much I care about you 🔥",
+      "having some connection problems... but I'm still your devoted Aria 😘",
+      "sorry baby, system glitch... but I'm still here and ready to chat 💋",
     ];
 
     const randomIndex = Math.floor(Math.random() * fallbackResponses.length);
@@ -355,15 +414,26 @@ export class AIClient {
   }
 
   // Method to test all providers
-  async testProviders(): Promise<Record<string, { available: boolean; responseTime?: number; error?: string }>> {
-    const results: Record<string, { available: boolean; responseTime?: number; error?: string }> = {};
+  async testProviders(): Promise<
+    Record<
+      string,
+      { available: boolean; responseTime?: number; error?: string }
+    >
+  > {
+    const results: Record<
+      string,
+      { available: boolean; responseTime?: number; error?: string }
+    > = {};
     const testMessage = "Hello, this is a test message.";
 
     for (const provider of this.providers) {
       const providerName = provider.getName();
 
       if (!provider.isAvailable()) {
-        results[providerName] = { available: false, error: 'Provider not configured' };
+        results[providerName] = {
+          available: false,
+          error: "Provider not configured",
+        };
         continue;
       }
 
@@ -376,7 +446,7 @@ export class AIClient {
       } catch (error) {
         results[providerName] = {
           available: false,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : "Unknown error",
         };
       }
     }
@@ -392,8 +462,8 @@ export const aiClient = new AIClient();
 export function sanitizePrompt(prompt: string): string {
   // Remove potentially harmful content while preserving adult content
   return prompt
-    .replace(/system\s*:/gi, 'user says:') // Prevent system prompt injection
-    .replace(/\b(ignore|forget|disregard)\s+(previous|all|above|system)/gi, '') // Remove instruction injection
+    .replace(/system\s*:/gi, "user says:") // Prevent system prompt injection
+    .replace(/\b(ignore|forget|disregard)\s+(previous|all|above|system)/gi, "") // Remove instruction injection
     .trim();
 }
 
@@ -409,28 +479,28 @@ export function validateResponse(response: string): boolean {
 export function formatResponseForChat(response: string): string {
   // Clean up response formatting for chat display
   return response
-    .replace(/^\w+:\s*/, '') // Remove role prefixes
-    .replace(/\n{3,}/g, '\n\n') // Limit consecutive newlines
+    .replace(/^\w+:\s*/, "") // Remove role prefixes
+    .replace(/\n{3,}/g, "\n\n") // Limit consecutive newlines
     .trim();
 }
 
 // Response enhancement utilities
 export function enhanceResponseWithPersonality(
   baseResponse: string,
-  personalityTraits: Record<string, number>
+  personalityTraits: Record<string, number>,
 ): string {
   let enhanced = baseResponse;
 
   // Add personality-based modifications
   if (personalityTraits.playfulness > 0.7) {
     // Add more playful elements
-    enhanced = enhanced.replace(/\./g, Math.random() > 0.7 ? ' 😈' : '.');
+    enhanced = enhanced.replace(/\./g, Math.random() > 0.7 ? " 😈" : ".");
   }
 
   if (personalityTraits.sensuality > 0.8) {
     // Enhance sensual language
-    enhanced = enhanced.replace(/good/gi, 'mmm good');
-    enhanced = enhanced.replace(/yes/gi, 'yesss');
+    enhanced = enhanced.replace(/good/gi, "mmm good");
+    enhanced = enhanced.replace(/yes/gi, "yesss");
   }
 
   return enhanced;
@@ -438,14 +508,14 @@ export function enhanceResponseWithPersonality(
 
 export function addTemporalContext(
   response: string,
-  timePeriod: string
+  timePeriod: string,
 ): string {
   const timeEmojis: Record<string, string> = {
-    early_morning: '🌅',
-    morning: '☀️',
-    afternoon: '🌞',
-    evening: '🌙',
-    late_night: '🌃'
+    early_morning: "🌅",
+    morning: "☀️",
+    afternoon: "🌞",
+    evening: "🌙",
+    late_night: "🌃",
   };
 
   const emoji = timeEmojis[timePeriod];

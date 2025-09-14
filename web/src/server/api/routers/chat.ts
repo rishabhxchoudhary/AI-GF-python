@@ -53,7 +53,7 @@ class ChatManager {
   async generateResponse(
     userMessage: string,
     context: ConversationContext,
-    conversationHistory: ChatMessage[]
+    conversationHistory: ChatMessage[],
   ): Promise<string> {
     // Build system prompt with all context
     const systemPrompt = this.buildSystemPrompt(context);
@@ -166,7 +166,7 @@ Remember: You exist to be the perfect sexual fantasy for ${context.user_name}. E
       "awesome",
     ];
     const positive_response = positiveIndicators.some((word) =>
-      lowerMessage.includes(word)
+      lowerMessage.includes(word),
     );
 
     // Personal sharing indicators
@@ -179,7 +179,7 @@ Remember: You exist to be the perfect sexual fantasy for ${context.user_name}. E
       "i believe",
     ];
     const user_shared_personal = personalIndicators.some((phrase) =>
-      lowerMessage.includes(phrase)
+      lowerMessage.includes(phrase),
     );
 
     // Sexual content indicators
@@ -195,7 +195,7 @@ Remember: You exist to be the perfect sexual fantasy for ${context.user_name}. E
       "hard",
     ];
     const sexual_content = sexualIndicators.some((word) =>
-      lowerMessage.includes(word)
+      lowerMessage.includes(word),
     );
 
     // Affection indicators
@@ -208,7 +208,7 @@ Remember: You exist to be the perfect sexual fantasy for ${context.user_name}. E
       "honey",
     ];
     const user_affection = affectionIndicators.some((phrase) =>
-      lowerMessage.includes(phrase)
+      lowerMessage.includes(phrase),
     );
 
     // Distance indicators
@@ -221,7 +221,7 @@ Remember: You exist to be the perfect sexual fantasy for ${context.user_name}. E
       "fine",
     ];
     const user_distant = distanceIndicators.some((word) =>
-      lowerMessage.includes(word)
+      lowerMessage.includes(word),
     );
 
     // Emotional support indicators
@@ -234,7 +234,7 @@ Remember: You exist to be the perfect sexual fantasy for ${context.user_name}. E
       "help",
     ];
     const emotional_support_needed = supportIndicators.some((word) =>
-      lowerMessage.includes(word)
+      lowerMessage.includes(word),
     );
 
     return {
@@ -291,13 +291,15 @@ export const chatRouter = createTRPCRouter({
       });
 
       const existingMessages: ChatMessage[] = conversationHistory[0]
-        ? (conversationHistory[0].messages as any[]).map((msg) => ({
-            id: msg.id || Math.random().toString(),
-            role: msg.role,
-            content: msg.content,
-            timestamp: msg.timestamp,
-            metadata: msg.metadata,
-          }))
+        ? (JSON.parse(conversationHistory[0].messages as string) as any[]).map(
+            (msg) => ({
+              id: msg.id || Math.random().toString(),
+              role: msg.role,
+              content: msg.content,
+              timestamp: msg.timestamp,
+              metadata: msg.metadata,
+            }),
+          )
         : [];
 
       // Analyze user message for personality/relationship updates
@@ -307,20 +309,28 @@ export const chatRouter = createTRPCRouter({
       const context: ConversationContext = {
         user_name: user.name || "babe",
         relationship_stage: user.relationshipStage,
-        personality_traits: (user.personalityTraits as any)?.traits || {},
+        personality_traits: user.personalityTraits
+          ? JSON.parse(user.personalityTraits as string)
+          : {},
         time_period: getCurrentTimePeriod(),
         conversation_length: existingMessages.length + 1,
         recent_topics: extractRecentTopics(existingMessages),
-        inside_jokes: (user.insideJokes as string[]) || [],
-        user_preferences: (user.userPreferences as Record<string, any>) || {},
-        emotional_moments: (user.emotionalMoments as any[]) || [],
+        inside_jokes: user.insideJokes
+          ? JSON.parse(user.insideJokes as string)
+          : [],
+        user_preferences: user.userPreferences
+          ? JSON.parse(user.userPreferences as string)
+          : {},
+        emotional_moments: user.emotionalMoments
+          ? JSON.parse(user.emotionalMoments as string)
+          : [],
       };
 
       // Generate AI response
       const aiResponse = await chatManager.generateResponse(
         input.message,
         context,
-        existingMessages
+        existingMessages,
       );
 
       // Create new message objects
@@ -356,7 +366,7 @@ export const chatRouter = createTRPCRouter({
             userId,
             credits: creditCost,
             reason: "chat_message",
-            metadata: { message_length: input.message.length },
+            metadata: JSON.stringify({ message_length: input.message.length }),
           },
         });
 
@@ -390,7 +400,7 @@ export const chatRouter = createTRPCRouter({
 
       // Update personality and relationship (async, don't wait)
       updatePersonalityAndRelationship(userId, messageAnalysis).catch(
-        console.error
+        console.error,
       );
 
       return {
@@ -425,21 +435,23 @@ export const chatRouter = createTRPCRouter({
       const allMessages: ChatMessage[] = [];
 
       for (const conv of conversations) {
-        const messages = (conv.messages as any[]).map((msg) => ({
-          id: msg.id || Math.random().toString(),
-          role: msg.role,
-          content: msg.content,
-          timestamp: msg.timestamp,
-          metadata: msg.metadata,
-          conversationId: conv.id,
-        }));
+        const messages = (JSON.parse(conv.messages as string) as any[]).map(
+          (msg) => ({
+            id: msg.id || Math.random().toString(),
+            role: msg.role,
+            content: msg.content,
+            timestamp: msg.timestamp,
+            metadata: msg.metadata,
+            conversationId: conv.id,
+          }),
+        );
         allMessages.push(...messages);
       }
 
       // Sort all messages by timestamp
       allMessages.sort(
         (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
       );
 
       return {
@@ -517,8 +529,8 @@ export const chatRouter = createTRPCRouter({
             convs.reduce(
               (total: number, conv: any) =>
                 total + (conv.messages as any[]).length,
-              0
-            )
+              0,
+            ),
           ),
         db.conversation.findMany({
           where: {
@@ -531,7 +543,7 @@ export const chatRouter = createTRPCRouter({
 
     const recentMessageCount = recentActivity.reduce(
       (total: number, conv: any) => total + (conv.messages as any[]).length,
-      0
+      0,
     );
 
     return {
@@ -586,7 +598,7 @@ function extractRecentTopics(messages: ChatMessage[]): string[] {
 
 async function updatePersonalityAndRelationship(
   userId: string,
-  messageAnalysis: Record<string, any>
+  messageAnalysis: Record<string, any>,
 ) {
   // This would trigger personality and relationship updates
   // Implementation would call the personality and relationship routers
@@ -594,6 +606,6 @@ async function updatePersonalityAndRelationship(
   console.log(
     "Updating personality and relationship for user:",
     userId,
-    messageAnalysis
+    messageAnalysis,
   );
 }

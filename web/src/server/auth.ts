@@ -86,20 +86,29 @@ export const authConfig: NextAuthConfig = {
   },
   adapter: PrismaAdapter(db) as any,
   providers: [
-    GoogleProvider({
-      clientId: env.GOOGLE_CLIENT_ID,
-      clientSecret: env.GOOGLE_CLIENT_SECRET,
-    }),
-    GitHubProvider({
-      clientId: env.GITHUB_ID,
-      clientSecret: env.GITHUB_SECRET,
-    }),
+    // Only add OAuth providers if keys are configured
+    ...(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+      ? [
+          GoogleProvider({
+            clientId: env.GOOGLE_CLIENT_ID,
+            clientSecret: env.GOOGLE_CLIENT_SECRET,
+          }),
+        ]
+      : []),
+    ...(env.GITHUB_ID && env.GITHUB_SECRET
+      ? [
+          GitHubProvider({
+            clientId: env.GITHUB_ID,
+            clientSecret: env.GITHUB_SECRET,
+          }),
+        ]
+      : []),
   ],
   pages: {
     signIn: "/auth/signin",
     error: "/auth/error",
   },
-  trustHost: true,
+  session: { strategy: "database" },
   events: {
     createUser: async ({ user }) => {
       // Give new users free trial credits
@@ -109,7 +118,7 @@ export const authConfig: NextAuthConfig = {
         where: { id: user.id },
         data: {
           credits: freeTrialCredits,
-          personalityTraits: {
+          personalityTraits: JSON.stringify({
             confidence: 0.7,
             romantic_intensity: 0.8,
             playfulness: 0.6,
@@ -125,8 +134,8 @@ export const authConfig: NextAuthConfig = {
             humor: 0.6,
             emotional_intensity: 0.7,
             independence: 0.5,
-          },
-          relationshipData: {
+          }),
+          relationshipData: JSON.stringify({
             current_stage: "new",
             stage_start_time: new Date().toISOString(),
             interaction_count: 0,
@@ -140,18 +149,18 @@ export const authConfig: NextAuthConfig = {
               sexual_chemistry: 0.6,
               emotional_bond: 0.4,
             },
-          },
-          memories: {
+          }),
+          memories: JSON.stringify({
             basic_memory: {},
             user_preferences: {},
             inside_jokes: [],
             unresolved_topics: [],
             conversation_themes: [],
             emotional_moments: [],
-          },
-          userPreferences: {},
-          insideJokes: [],
-          emotionalMoments: [],
+          }),
+          userPreferences: JSON.stringify({}),
+          insideJokes: JSON.stringify([]),
+          emotionalMoments: JSON.stringify([]),
         },
       });
 
@@ -160,7 +169,7 @@ export const authConfig: NextAuthConfig = {
       );
     },
   },
-  debug: env.NODE_ENV === "development",
+  debug: false,
 };
 
 export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
@@ -171,10 +180,5 @@ export const { handlers, auth, signIn, signOut } = NextAuth(authConfig);
  * @see https://next-auth.js.org/configuration/nextjs
  */
 export const getServerAuthSession = async () => {
-  try {
-    return await auth();
-  } catch (error) {
-    console.warn("Auth session error:", error);
-    return null;
-  }
+  return await auth();
 };
