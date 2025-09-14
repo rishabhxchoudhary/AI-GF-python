@@ -2,6 +2,91 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Custom styles for chat interface */
+.chat-container {
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: #e2e8f0 transparent;
+}
+
+.chat-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-container::-webkit-scrollbar-thumb {
+  background-color: #e2e8f0;
+  border-radius: 3px;
+}
+
+.chat-container::-webkit-scrollbar-thumb:hover {
+  background-color: #cbd5e1;
+}
+
+/* Smooth transitions for message animations */
+.message-enter {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: messageSlideIn 0.3s ease-out forwards;
+}
+
+@keyframes messageSlideIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Typing indicator animation */
+.typing-dot {
+  animation: typingBounce 1.4s infinite ease-in-out both;
+}
+
+.typing-dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+.typing-dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes typingBounce {
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+/* Streaming cursor animation */
+.streaming-cursor {
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Enhanced focus states */
+.chat-input:focus {
+  outline: none;
+  ring: 2px;
+  ring-color: #ec4899;
+  ring-offset: 2px;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -163,7 +248,7 @@
 
   .credit-card::before {
     @apply absolute inset-0 bg-gradient-to-br from-pink-500/10 to-purple-600/10 opacity-0 transition-opacity duration-200;
-    content: '';
+    content: "";
   }
 
   .credit-card:hover::before {
@@ -180,7 +265,7 @@
 
   .pricing-card-popular::before {
     @apply absolute -top-1 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-pink-500 to-purple-600 text-white px-4 py-1 rounded-b-lg text-sm font-medium;
-    content: 'Most Popular';
+    content: "Most Popular";
   }
 
   .glow-effect {
@@ -189,7 +274,7 @@
 
   .glow-effect::before {
     @apply absolute inset-0 rounded-full bg-pink-500/20 blur-xl opacity-0 transition-opacity duration-300;
-    content: '';
+    content: "";
     z-index: -1;
   }
 
@@ -203,7 +288,7 @@
 
   .shimmer::before {
     @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent;
-    content: '';
+    content: "";
     animation: shimmer 2s infinite;
   }
 
@@ -227,9 +312,11 @@
 
   .btn-outline-gradient::before {
     @apply absolute inset-0 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600;
-    content: '';
+    content: "";
     padding: 2px;
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
     mask-composite: exclude;
     z-index: -1;
   }
@@ -260,11 +347,21 @@
     @apply transition-all duration-500 ease-out;
   }
 
-  .stagger-children > *:nth-child(1) { animation-delay: 0.1s; }
-  .stagger-children > *:nth-child(2) { animation-delay: 0.2s; }
-  .stagger-children > *:nth-child(3) { animation-delay: 0.3s; }
-  .stagger-children > *:nth-child(4) { animation-delay: 0.4s; }
-  .stagger-children > *:nth-child(5) { animation-delay: 0.5s; }
+  .stagger-children > *:nth-child(1) {
+    animation-delay: 0.1s;
+  }
+  .stagger-children > *:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .stagger-children > *:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+  .stagger-children > *:nth-child(4) {
+    animation-delay: 0.4s;
+  }
+  .stagger-children > *:nth-child(5) {
+    animation-delay: 0.5s;
+  }
 
   /* Responsive utilities */
   .text-responsive {
@@ -291,8 +388,17 @@
   }
 
   .bg-mesh {
-    background-image: radial-gradient(circle at 25% 25%, rgba(255, 20, 147, 0.1) 0%, transparent 50%),
-                      radial-gradient(circle at 75% 75%, rgba(138, 43, 226, 0.1) 0%, transparent 50%);
+    background-image:
+      radial-gradient(
+        circle at 25% 25%,
+        rgba(255, 20, 147, 0.1) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 75% 75%,
+        rgba(138, 43, 226, 0.1) 0%,
+        transparent 50%
+      );
   }
 
   .backdrop-blur-custom {
@@ -305,7 +411,8 @@
   }
 
   @keyframes float {
-    0%, 100% {
+    0%,
+    100% {
       transform: translateY(0px);
     }
     50% {
@@ -381,6 +488,6 @@
 
 .loading-shimmer::before {
   @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/20 dark:via-gray-600/20 to-transparent;
-  content: '';
+  content: "";
   animation: shimmer 1.5s infinite;
 }

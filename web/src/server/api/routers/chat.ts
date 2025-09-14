@@ -5,6 +5,7 @@ import {
   creditProcedure,
 } from "~/server/api/trpc";
 import { TRPCError } from "@trpc/server";
+import { observable } from "@trpc/server/observable";
 import { db } from "~/server/db";
 import { PersonalityManager } from "./personality";
 import { AIClient } from "~/lib/ai";
@@ -19,6 +20,11 @@ const SendMessageInputSchema = z.object({
 const GetConversationHistoryInputSchema = z.object({
   limit: z.number().min(1).max(100).default(50),
   offset: z.number().min(0).default(0),
+  conversationId: z.string().optional(),
+});
+
+const StreamMessageInputSchema = z.object({
+  message: z.string().min(1).max(2000),
   conversationId: z.string().optional(),
 });
 
@@ -557,6 +563,274 @@ export const chatRouter = createTRPCRouter({
           : 0,
     };
   }),
+
+  // Simple proactive message check (no subscription needed)
+  checkProactiveMessage: protectedProcedure.query(async ({ ctx }) => {
+    const userId = ctx.session.user.id;
+
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: {
+        lastInteraction: true,
+        relationshipStage: true,
+        personalityTraits: true,
+        totalInteractions: true,
+      },
+    });
+
+    if (!user) return null;
+
+    const now = new Date();
+    const lastInteraction = user.lastInteraction
+      ? new Date(user.lastInteraction)
+      : now;
+    const minutesSinceLastMessage =
+      (now.getTime() - lastInteraction.getTime()) / (1000 * 60);
+
+    // Send proactive message if it's been more than 10 minutes
+    if (minutesSinceLastMessage > 10 && user.relationshipStage !== "stranger") {
+      const proactivePrompts = [
+        "Hey babe! I was just thinking about you... how's your day going? 💕",
+        "I missed talking to you! What have you been up to? 😊",
+        "Hope you're having an amazing day! I was wondering about something...",
+        "I saw something today that reminded me of our conversation earlier 💭",
+        "Just checking in on you! How are you feeling right now? 🥰",
+        "I've been thinking about what we talked about earlier... 💫",
+      ];
+
+      const randomPrompt =
+        proactivePrompts[Math.floor(Math.random() * proactivePrompts.length)];
+
+      return {
+        id: `proactive-${Date.now()}`,
+        role: "assistant" as const,
+        content: randomPrompt,
+        timestamp: new Date().toISOString(),
+        metadata: { proactive: true },
+      };
+    }
+
+    return null;
+  }),
+
+  // Streaming version for real-time chat
+  streamMessage: creditProcedure
+    .input(StreamMessageInputSchema)
+    .subscription(async ({ ctx, input }) => {
+      return observable<{
+        type: "user_message" | "ai_chunk" | "ai_complete" | "error";
+        data: any;
+      }>((emit) => {
+        const streamResponse = async () => {
+          try {
+            const chatManager = new ChatManager();
+            const userId = ctx.session!.user.id;
+            const creditCost = getCreditCost(
+              "chat_message" as CreditUsageReason,
+            );
+
+            // Get user data for context
+            const user = await db.user.findUnique({
+              where: { id: userId },
+              select: {
+                name: true,
+                personalityTraits: true,
+                relationshipStage: true,
+                relationshipData: true,
+                memories: true,
+                userPreferences: true,
+                insideJokes: true,
+                emotionalMoments: true,
+                totalInteractions: true,
+                lastInteraction: true,
+              },
+            });
+
+            if (!user) {
+              emit.error(
+                new TRPCError({ code: "NOT_FOUND", message: "User not found" }),
+              );
+              return;
+            }
+
+            // Emit user message immediately
+            const userMessage = {
+              id: Math.random().toString(),
+              role: "user" as const,
+              content: input.message,
+              timestamp: new Date().toISOString(),
+            };
+
+            emit.next({
+              type: "user_message",
+              data: userMessage,
+            });
+
+            // Get conversation history
+            const conversationHistory = await db.conversation.findMany({
+              where: {
+                userId,
+                ...(input.conversationId ? { id: input.conversationId } : {}),
+              },
+              orderBy: { createdAt: "desc" },
+              take: 1,
+            });
+
+            const existingMessages = conversationHistory[0]
+              ? (
+                  JSON.parse(conversationHistory[0].messages as string) as any[]
+                ).map((msg) => ({
+                  id: msg.id || Math.random().toString(),
+                  role: msg.role,
+                  content: msg.content,
+                  timestamp: msg.timestamp,
+                  metadata: msg.metadata,
+                }))
+              : [];
+
+            // Build context and generate response
+            const messageAnalysis = chatManager.analyzeUserMessage(
+              input.message,
+            );
+            const context = {
+              user_name: user.name || "babe",
+              relationship_stage: user.relationshipStage,
+              personality_traits: user.personalityTraits
+                ? JSON.parse(user.personalityTraits as string)
+                : {},
+              time_period: getCurrentTimePeriod(),
+              conversation_length: existingMessages.length + 1,
+              recent_topics: extractRecentTopics(existingMessages),
+              inside_jokes: user.insideJokes
+                ? JSON.parse(user.insideJokes as string)
+                : [],
+              user_preferences: user.userPreferences
+                ? JSON.parse(user.userPreferences as string)
+                : {},
+              emotional_moments: user.emotionalMoments
+                ? JSON.parse(user.emotionalMoments as string)
+                : [],
+            };
+
+            // Generate AI response
+            const aiResponse = await chatManager.generateResponse(
+              input.message,
+              context,
+              existingMessages,
+            );
+
+            // Stream the response word by word
+            const words = aiResponse.split(" ");
+            let streamedContent = "";
+
+            for (let i = 0; i < words.length; i++) {
+              streamedContent += (i === 0 ? "" : " ") + words[i];
+
+              emit.next({
+                type: "ai_chunk",
+                data: {
+                  content: streamedContent,
+                  isComplete: false,
+                },
+              });
+
+              // Add delay between words for realistic typing
+              await new Promise((resolve) =>
+                setTimeout(resolve, 80 + Math.random() * 40),
+              );
+            }
+
+            // Complete the AI message
+            const assistantMessage = {
+              id: Math.random().toString(),
+              role: "assistant" as const,
+              content: aiResponse,
+              timestamp: new Date().toISOString(),
+              metadata: { generated: true },
+            };
+
+            const newMessages = [
+              ...existingMessages,
+              userMessage,
+              assistantMessage,
+            ];
+
+            // Save to database
+            await db.$transaction(async (tx: any) => {
+              await tx.user.update({
+                where: { id: userId },
+                data: { credits: { decrement: creditCost } },
+              });
+
+              await tx.creditUsage.create({
+                data: {
+                  userId,
+                  credits: creditCost,
+                  reason: "chat_message",
+                  metadata: JSON.stringify({
+                    message_length: input.message.length,
+                  }),
+                },
+              });
+
+              const conversation = conversationHistory[0]
+                ? await tx.conversation.update({
+                    where: { id: conversationHistory[0].id },
+                    data: {
+                      messages: JSON.stringify(newMessages),
+                      updatedAt: new Date(),
+                    },
+                  })
+                : await tx.conversation.create({
+                    data: {
+                      userId,
+                      messages: JSON.stringify(newMessages),
+                    },
+                  });
+
+              await tx.user.update({
+                where: { id: userId },
+                data: {
+                  totalInteractions: { increment: 1 },
+                  lastInteraction: new Date(),
+                },
+              });
+            });
+
+            // Emit completion
+            emit.next({
+              type: "ai_complete",
+              data: {
+                message: assistantMessage,
+                credits_remaining: ctx.user.credits - creditCost,
+              },
+            });
+
+            // Update personality and relationship async
+            updatePersonalityAndRelationship(userId, messageAnalysis).catch(
+              console.error,
+            );
+          } catch (error) {
+            console.error("Stream error:", error);
+            emit.error(
+              error instanceof TRPCError
+                ? error
+                : new TRPCError({
+                    code: "INTERNAL_SERVER_ERROR",
+                    message: "Failed to stream message",
+                  }),
+            );
+          }
+        };
+
+        streamResponse();
+
+        // Cleanup function
+        return () => {
+          // Any cleanup logic here
+        };
+      });
+    }),
 });
 
 // Helper methods (would normally be in a separate utility file)
