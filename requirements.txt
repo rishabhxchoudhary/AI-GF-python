@@ -1,0 +1,17 @@
+# Core dependencies
+huggingface_hub>=0.19.0
+python-dotenv>=1.0.0
+
+# Standard library modules (no installation needed)
+# - json
+# - logging
+# - os
+# - random
+# - re
+# - sys
+# - threading
+# - time
+# - datetime
+# - pathlib
+# - typing
+# - queue
