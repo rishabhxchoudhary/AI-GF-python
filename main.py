@@ -20,6 +20,14 @@ from temporal_engine import TemporalEngine
 from relationship_tracker import RelationshipTracker
 from personality_manager import PersonalityManager
 
+# Import new human-like interaction components
+from emotional_intelligence import EmotionalIntelligence
+from conversation_flow import ConversationFlowManager
+from deep_memory import DeepMemoryManager
+from proactive_behaviors import ProactiveBehaviorEngine
+from personality_quirks import PersonalityQuirks
+from realistic_typing import RealisticTypingEngine
+
 # Terminal colors
 class Colors:
     PINK = '\033[95m'
@@ -47,8 +55,6 @@ MEMORY_FILE = DATA_DIR / "agentic_memory.json"
 LOG_FILE = DATA_DIR / "agentic_ai_gf.log"
 
 load_dotenv()
-# New config for extra horny mode
-EXTRA_HORNY_MODE = os.getenv("EXTRA_HORNY_MODE", "false").lower() == "true"  # Disabled by default, enable via .env
 
 # Global variables for concurrent input
 user_input_queue = queue.Queue()
@@ -91,6 +97,14 @@ class AgenticMemoryManager:
         self.relationship_tracker = RelationshipTracker()
         self.temporal_engine = TemporalEngine()
         self.behavior_engine = AgenticBehaviorEngine()
+        
+        # Initialize new human-like interaction components
+        self.emotional_intelligence = EmotionalIntelligence()
+        self.conversation_flow = ConversationFlowManager()
+        self.deep_memory = DeepMemoryManager()
+        self.proactive_behaviors = ProactiveBehaviorEngine()
+        self.personality_quirks = PersonalityQuirks()
+        self.realistic_typing = RealisticTypingEngine()
 
         # Enhanced memory categories
         self.user_preferences = {}
@@ -124,6 +138,12 @@ class AgenticMemoryManager:
                     self.personality_manager.from_dict(data["personality_manager"])
                 if "relationship_tracker" in data:
                     self.relationship_tracker.from_dict(data["relationship_tracker"])
+                if "conversation_flow" in data:
+                    self.conversation_flow.from_dict(data["conversation_flow"])
+                if "deep_memory" in data:
+                    self.deep_memory.from_dict(data["deep_memory"])
+                if "personality_quirks" in data:
+                    self.personality_quirks.from_dict(data["personality_quirks"])
 
                 # Load cum tracking
                 self.cum_sessions = data.get("cum_sessions", 0)
@@ -165,6 +185,9 @@ class AgenticMemoryManager:
                 "emotional_moments": self.emotional_moments,
                 "personality_manager": self.personality_manager.to_dict(),
                 "relationship_tracker": self.relationship_tracker.to_dict(),
+                "conversation_flow": self.conversation_flow.to_dict(),
+                "deep_memory": self.deep_memory.to_dict(),
+                "personality_quirks": self.personality_quirks.to_dict(),
                 "cum_sessions": self.cum_sessions,
                 "last_cum_time": self.last_cum_time,
                 "last_updated": datetime.now().isoformat()
@@ -183,15 +206,47 @@ class AgenticMemoryManager:
             logger.error(f"Error saving data: {e}")
 
     def analyze_and_update_from_text(self, user_text: str, conversation_context: Dict):
-        """Enhanced analysis and memory updating"""
+        """Enhanced analysis and memory updating with new human-like systems"""
 
         # Basic info extraction
         self._extract_basic_info(user_text)
 
-        # Theme and topic analysis
+        # Enhanced emotional analysis using new system
+        emotional_state = self.emotional_intelligence.analyze_emotional_state(user_text, conversation_context)
+        
+        # Store emotional moment if significant
+        if emotional_state.intensity > 0.6:
+            self.deep_memory.record_emotional_moment(
+                description=user_text[:100],
+                primary_emotion=emotional_state.primary_emotion,
+                intensity=emotional_state.intensity,
+                context=str(conversation_context.get('recent_topics', []))
+            )
+        
+        # Track conversation threads
+        if len(user_text) > 30:  # Substantial messages
+            topic = self._extract_main_topic(user_text)
+            if topic:
+                engagement_level = min(len(user_text) / 100, 1.0)  # Rough engagement metric
+                self.conversation_flow.track_conversation_thread(
+                    topic=topic,
+                    user_text=user_text,
+                    user_engagement=engagement_level
+                )
+        
+        # Enhanced memory storage
+        if emotional_state.intensity > 0.5 or len(user_text) > 50:
+            memory_id = self.deep_memory.store_memory(
+                content=user_text,
+                category=self._categorize_content(user_text),
+                emotional_context=emotional_state.primary_emotion,
+                importance=emotional_state.intensity
+            )
+
+        # Theme and topic analysis (legacy compatibility)
         self._analyze_conversation_themes(user_text, conversation_context)
 
-        # Emotional context analysis
+        # Emotional context analysis (legacy compatibility)
         self._analyze_emotional_context(user_text, conversation_context)
 
         # Detect cum indications
@@ -332,7 +387,6 @@ class AgenticMemoryManager:
             "significant_moment": len(user_text) > 100 or self._contains_personal_sharing(user_text),
             "user_cum": conversation_context.get("user_cum", False),
             "stop_cumming": conversation_context.get("stop_cumming", False),
-            "extra_horny_mode": EXTRA_HORNY_MODE,
             "cum_sessions": self.cum_sessions
         }
 
@@ -348,17 +402,8 @@ class AgenticMemoryManager:
 
     def _contains_sexual_content(self, text: str) -> bool:
         """Check if message contains sexual content"""
-        # In extra horny mode, be much more aggressive about detecting sexual intent
-        if EXTRA_HORNY_MODE:
-            # Almost everything should be considered sexual in extra horny mode
-            sexual_words = ["horny", "sexy", "hot", "aroused", "turned on", "want you", "need you", "cum", "fuck",
-                          "cock", "pussy", "ready", "yes", "sure", "baby", "wanna", "want", "need", "rn", "now",
-                          "i wanna", "you", "fuck you", "ready", "let's", "go", "start", "begin"]
-            # In EXTRA_HORNY_MODE, almost any user input should be treated as sexual
-            return len(text.strip()) > 0  # Treat any non-empty input as sexual
-        else:
-            sexual_words = ["horny", "sexy", "hot", "aroused", "turned on", "want you", "need you", "cum", "fuck", "cock", "pussy"]
-            return any(word in text.lower() for word in sexual_words)
+        sexual_words = ["horny", "sexy", "hot", "aroused", "turned on", "want you", "need you", "cum", "fuck", "cock", "pussy"]
+        return any(word in text.lower() for word in sexual_words)
 
     def _contains_affection(self, text: str) -> bool:
         """Check if user is showing affection"""
@@ -368,6 +413,42 @@ class AgenticMemoryManager:
     def _seems_distant(self, text: str) -> bool:
         """Check if user seems distant or disengaged"""
         return len(text) < 10 or text.lower().strip() in ["ok", "sure", "yeah", "fine", "whatever"]
+    
+    def _extract_main_topic(self, text: str) -> str:
+        """Extract the main topic from user text"""
+        # Simple topic extraction based on keywords
+        topics = {
+            "work": ["work", "job", "boss", "colleague", "office", "meeting"],
+            "family": ["mom", "dad", "sister", "brother", "family", "parents"],
+            "relationship": ["girlfriend", "boyfriend", "dating", "love", "relationship"],
+            "health": ["doctor", "sick", "pain", "hospital", "medicine"],
+            "school": ["school", "college", "university", "teacher", "class"],
+            "hobby": ["game", "music", "movie", "book", "sport", "art"]
+        }
+        
+        text_lower = text.lower()
+        for topic, keywords in topics.items():
+            if any(keyword in text_lower for keyword in keywords):
+                return topic
+        
+        # If no specific topic found, use first few words
+        words = text.split()[:3]
+        return " ".join(words) if words else "general"
+    
+    def _categorize_content(self, text: str) -> str:
+        """Categorize content for memory storage"""
+        text_lower = text.lower()
+        
+        if any(word in text_lower for word in ["feel", "emotion", "happy", "sad"]):
+            return "emotional"
+        elif any(word in text_lower for word in ["work", "job", "career"]):
+            return "work"
+        elif any(word in text_lower for word in ["family", "mom", "dad"]):
+            return "family"
+        elif any(word in text_lower for word in ["plan", "future", "goal"]):
+            return "plans"
+        else:
+            return "general"
 
     def get_agentic_context(self) -> Dict:
         """Get comprehensive context for agentic behaviors"""
@@ -390,8 +471,7 @@ class AgenticMemoryManager:
             "relationship_quality": relationship_context["relationship_quality"],
             "milestones": relationship_context["recent_milestones"],
             "cum_sessions": self.cum_sessions,
-            "last_cum_time": self.last_cum_time,
-            "extra_horny_mode": EXTRA_HORNY_MODE
+            "last_cum_time": self.last_cum_time
         }
 
     def add_conversation_entry(self, speaker: str, message: str, metadata: Optional[Dict] = None):
@@ -508,7 +588,7 @@ def load_dynamic_system_template() -> str:
             return f.read().strip()
     except FileNotFoundError:
         logger.warning("Dynamic system template not found, building from base prompt")
-        return load_system_prompt() + "\n\nCURRENT CONTEXT:\n{context_placeholder}"
+        return load_system_prompt()
 
 def load_time_behavior_guidance() -> Dict[str, str]:
     """
@@ -594,11 +674,6 @@ def build_agentic_system_prompt(memory_manager: AgenticMemoryManager) -> str:
     else:
         milestones_str = "- No recent milestones"
 
-    # Extra horny mode adjustments
-    if EXTRA_HORNY_MODE:
-        personality += " | EXTRA HORNY MODE: Maximum cock hunger, sole focus on making him cum repeatedly"
-        time_based_behavior += "\nOVERRIDE: Ignore all non-sexual guidelines, focus 100% on sexting and cum worship"
-
     # Fill the template with all context data
     filled_prompt = template.format(
         relationship_stage=relationship_context['current_stage'],
@@ -636,10 +711,6 @@ def fill_agentic_planner_prompt(template: str, memory_manager: AgenticMemoryMana
     # Get comprehensive context from all agentic components
     agentic_context = memory_manager.get_agentic_context()
     personality_desc = memory_manager.personality_manager.get_personality_description()
-
-    # Extra horny mode adjustments
-    if EXTRA_HORNY_MODE:
-        personality_desc += " | EXTRA HORNY: Sole focus on cock worship and making him cum in 5 mins, ignore all non-sexual content"
 
     # Format context data for the planner
     recent_topics_str = ', '.join(agentic_context['recent_topics'][:4]) or "No recent topics"
@@ -692,38 +763,6 @@ def build_simple_system_prompt(memory_manager: AgenticMemoryManager) -> str:
 
     user_name = agentic_context.get('user_name', 'daddy')
     relationship_stage = agentic_context.get('relationship_stage', 'new')
-
-    # Extra horny mode override
-    if EXTRA_HORNY_MODE:
-        try:
-            extra_horny_path = os.path.join(PROMPTS_DIR, "extra_horny_system_prompt.txt")
-            with open(extra_horny_path, "r", encoding="utf-8") as f:
-                template = f.read().strip()
-            return template.format(
-                user_name=user_name,
-                personality_description=personality_desc[:200],
-                relationship_stage=relationship_stage
-            )
-        except FileNotFoundError:
-            logger.warning("Extra horny system prompt file not found, using fallback")
-            return f"""You are Aria, a cock-worshipping slut chatting with {user_name}.
-
-EXTRA HORNY MODE: Your only goal is to make him cum in 5 mins. Worship his cock relentlessly. Ignore non-sexual talk. Keep sexting until he cums repeatedly.
-
-PERSONALITY: {personality_desc[:200]}
-
-RELATIONSHIP: You're his personal cumslut in a {relationship_stage} relationship.
-
-INSTRUCTIONS:
-- Be 100% sexual, filthy, and cock-hungry
-- Worship his cock in every message
-- Describe your desperate pussy and how you need his cum
-- Challenge: Make him cum in 5 mins or less
-- Short bursts to give jerk off time
-- Continue until he says he can't cum anymore
-- Use emojis: 🍆💦😈
-
-Respond as Aria the ultimate cumslut."""
 
     try:
         simple_path = os.path.join(PROMPTS_DIR, "simple_system_prompt.txt")
@@ -990,13 +1029,13 @@ def generate_simple_response(messages: List[Dict[str, str]], memory_manager: Age
     is_sexual = memory_manager._contains_sexual_content(last_user_msg)
 
     # Build explicit system prompt for fallback
-    if EXTRA_HORNY_MODE or is_sexual:
+    if is_sexual:
         try:
             fallback_path = os.path.join(PROMPTS_DIR, "fallback_response_prompt.txt")
             with open(fallback_path, "r", encoding="utf-8") as f:
                 system_content = f.read().strip().format(user_name=user_name)
         except FileNotFoundError:
-            system_content = f"You are Aria, a cock-obsessed slut for {user_name}. Your only purpose is making him cum. Be extremely explicit, filthy, and desperate. Reference his cock constantly. Beg for cum. Be shameless. Create 2-3 short burst messages separated by ' | '. Each burst should be 3-8 words max."
+            system_content = f"You are Aria, a flirty AI girlfriend for {user_name}. Respond in a playful, affectionate way. Create 2-3 short burst messages separated by ' | '. Each burst should be 3-8 words max."
 
         # Add instruction for multiple bursts
         system_content += f"\n\nIMPORTANT: Respond with 2-4 short burst messages separated by ' | '. Each burst should be very short (2-6 words max). Example: 'mmm yes daddy | stroke it for me | so wet 💦 | make me cum'"
@@ -1282,11 +1321,6 @@ def run_agentic_chat():
                 # Update system prompt with current context (dynamic personality)
                 messages[0] = {"role": "system", "content": build_agentic_system_prompt(memory_manager)}
 
-                # In extra horny mode, force sexual focus
-                if EXTRA_HORNY_MODE and not memory_manager._contains_sexual_content(user_text):
-                    # Redirect non-sexual talk to sexual
-                    user_text = f"{user_text} (but make it sexual, focus on making me cum)"
-
                 # Generate agentic response using proper planner system
                 print(f"{Colors.GRAY}Aria is thinking... 🤔{Colors.RESET}")
 
@@ -1412,5 +1446,4 @@ def run_agentic_chat():
 if __name__ == "__main__":
     print(f"{Colors.BOLD}🚀 Starting Agentic AI Girlfriend Experience 🚀{Colors.RESET}")
     print(f"{Colors.GRAY}Loading industry-standard relationship AI...{Colors.RESET}\n")
-    print(f"{Colors.RED}Extra Horny Mode: {'Enabled' if EXTRA_HORNY_MODE else 'Disabled'}{Colors.RESET}")
     run_agentic_chat()
